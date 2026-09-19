@@ -130,6 +130,8 @@ void keyboard_irq(void) {
             event.character = (char)(event.character - 'a' + 'A');
         if (event.key != INPUT_KEY_NONE)
             (void)input_push(&event);
+        if (event.pressed && event.character)
+            serial_printf("[MinOS Keyboard] key=%c queued\n", event.character);
     }
     extended = 0;
     pic_eoi(1);

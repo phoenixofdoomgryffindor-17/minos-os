@@ -104,6 +104,14 @@ def run():
                 s.recv(1024) # Greeting
                 s.sendall(b'{"execute": "qmp_capabilities"}\n')
                 s.recv(1024)
+                for key in ("h", "e", "l", "p", "enter"):
+                    key_cmd = json.dumps({
+                        "execute": "send-key",
+                        "arguments": {"keys": [{"type": "qcode", "data": key}]}
+                    }).encode("utf-8") + b"\n"
+                    s.sendall(key_cmd)
+                    time.sleep(0.05)
+                    s.recv(1024)
                 screendump_cmd = json.dumps({"execute": "screendump", "arguments": {"filename": screenshot_ppm}}).encode('utf-8') + b'\n'
                 s.sendall(screendump_cmd)
                 time.sleep(0.5)
@@ -129,7 +137,12 @@ def run():
         print("=" * 60)
 
         if success:
-            print("[MinOS Run] TEST PASSED: Kernel booted and periodic APIC timer IRQ verified!")
+            with open(SERIAL_LOG, "r", encoding="utf-8", errors="replace") as f:
+                log_content = f.read()
+            if "[MinOS Keyboard] key=" not in log_content:
+                print("[MinOS Run] TEST FAILED: QEMU keyboard input did not reach the console.")
+                sys.exit(1)
+            print("[MinOS Run] TEST PASSED: Timer IRQ and keyboard IRQ delivery verified!")
             sys.exit(0)
         else:
             print("[MinOS Run] TEST FAILED: periodic APIC timer IRQ marker not found within timeout.")

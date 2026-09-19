@@ -55,6 +55,14 @@ static void pic_mask_all(void) {
     io_wait();
     outb(0xA1, 0x28);
     io_wait();
+    outb(0x21, 0x04); /* master is connected to the slave on IRQ2 */
+    io_wait();
+    outb(0xA1, 0x02); /* slave identity */
+    io_wait();
+    outb(0x21, 0x01); /* 8086 mode */
+    io_wait();
+    outb(0xA1, 0x01); /* 8086 mode */
+    io_wait();
     outb(0x21, 0xFF);
     outb(0xA1, 0xFF);
 }
