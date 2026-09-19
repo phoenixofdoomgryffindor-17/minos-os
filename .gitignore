@@ -1,0 +1,16 @@
+# Build Artifacts
+build/
+
+# Tools & Downloads (installed locally via setup_toolchain.py)
+tools/bin/
+tools/downloads/
+tools/w64devkit/
+tools/qemu/
+tools/git/
+tools/7z/
+
+# Temporary / OS files
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
