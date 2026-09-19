@@ -89,6 +89,25 @@ static char key_character(enum input_key key) {
     return 0;
 }
 
+static char scancode_character(uint8_t code, uint8_t shift) {
+    static const char number_shifted[] = ")!@#$%^&*(";
+
+    if (code >= 0x02 && code <= 0x0B)
+        return shift ? number_shifted[code - 0x02] : (code == 0x0B ? '0' : (char)('1' + code - 0x02));
+    if (code >= 0x0C && code <= 0x0D)
+        return shift ? (code == 0x0C ? '_' : '+') : (code == 0x0C ? '-' : '=');
+    if (code == 0x1A) return shift ? '{' : '[';
+    if (code == 0x1B) return shift ? '}' : ']';
+    if (code == 0x27) return shift ? ':' : ';';
+    if (code == 0x28) return shift ? '"' : '\'';
+    if (code == 0x29) return shift ? '~' : '`';
+    if (code == 0x2B) return shift ? '|' : '\\';
+    if (code == 0x33) return shift ? '<' : ',';
+    if (code == 0x34) return shift ? '>' : '.';
+    if (code == 0x35) return shift ? '?' : '/';
+    return 0;
+}
+
 void keyboard_irq(void) {
     uint8_t code;
     struct input_event event;
@@ -125,6 +144,12 @@ void keyboard_irq(void) {
         event.pressed = released ? 0 : 1;
         event.modifiers = modifiers;
         event.character = event.pressed ? key_character(event.key) : 0;
+        if (event.pressed && !extended)
+            {
+                char symbol = scancode_character(code, (modifiers & INPUT_MOD_SHIFT) != 0);
+                if (symbol)
+                    event.character = symbol;
+            }
         if ((modifiers & INPUT_MOD_SHIFT) && event.character >= 'a' &&
             event.character <= 'z')
             event.character = (char)(event.character - 'a' + 'A');
