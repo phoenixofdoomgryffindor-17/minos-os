@@ -20,6 +20,11 @@ SOURCES = [
     os.path.join(PROJECT_ROOT, "kernel", "main.c"),
     os.path.join(PROJECT_ROOT, "kernel", "serial.c"),
     os.path.join(PROJECT_ROOT, "kernel", "framebuffer.c"),
+    os.path.join(PROJECT_ROOT, "kernel", "entry.c"),
+    os.path.join(PROJECT_ROOT, "kernel", "gdt.c"),
+    os.path.join(PROJECT_ROOT, "kernel", "idt.c"),
+    os.path.join(PROJECT_ROOT, "kernel", "pmm.c"),
+    os.path.join(PROJECT_ROOT, "kernel", "vmm.c"),
 ]
 
 def check_toolchain():

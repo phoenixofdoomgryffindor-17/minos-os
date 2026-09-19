@@ -11,6 +11,22 @@ The project builds incrementally toward a real, bootable bare-metal operating sy
 
 ---
 
+## Milestone 2: Protected Kernel Foundations
+
+Milestone 2 keeps the direct UEFI design while establishing the foundations needed
+for later multitasking and device drivers:
+* A 32 KiB, 16-byte-aligned kernel stack and an explicit post-`ExitBootServices`
+  transfer (the firmware stack is never reused).
+* A flat kernel GDT and an exception-only IDT (vectors 0, 1, 3, 6, 8, 13, 14).
+  Hardware interrupts remain masked.
+* A conservative 4 KiB physical frame allocator populated only from
+  `EfiConventionalMemory`, excluding handoff data, framebuffer, image, and stack.
+* Kernel-owned identity and higher-half (`0xFFFF800000000000`) page tables, with
+  a direct physical (HHDM) view, loaded into CR3.
+
+The implementation intentionally maps the first 4 GiB with 2 MiB pages for this
+bootstrap milestone; larger physical memory is reported but not yet mapped.
+
 ## Milestone 1: Minimal Bootable Prototype
 
 Milestone 1 implements the smallest possible real bootable x86_64 UEFI kernel that boots in QEMU and visibly demonstrates full hardware control.

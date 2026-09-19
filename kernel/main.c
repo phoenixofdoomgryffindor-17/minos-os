@@ -1,6 +1,10 @@
 #include "kernel.h"
 #include "serial.h"
 #include "framebuffer.h"
+#include "gdt.h"
+#include "idt.h"
+#include "pmm.h"
+#include "vmm.h"
 
 void kernel_main(MinOS_BootInfo *boot_info) {
     /* 1. Initialize Serial Diagnostics (COM1) */
@@ -15,6 +19,17 @@ void kernel_main(MinOS_BootInfo *boot_info) {
         serial_puts("[MinOS Kernel] ERROR: Invalid or corrupted BootInfo struct!\n");
         halt_loop();
     }
+
+    /* Establish kernel-owned CPU tables before enabling any future subsystems. */
+    gdt_init();
+    idt_init();
+    pmm_init(boot_info);
+    vmm_init(boot_info);
+    serial_puts("[MinOS Kernel] GDT, IDT, PMM and VMM initialized; interrupts masked.\n");
+    serial_printf("[MinOS Kernel] PMM statistics: %u MiB usable, %u MiB reserved, %u free frames\n",
+                  pmm_usable_bytes() / (1024 * 1024),
+                  pmm_reserved_bytes() / (1024 * 1024),
+                  pmm_free_frames());
 
     /* 2. Log Boot & Hardware Parameters */
     serial_printf("[MinOS Kernel] BootInfo Magic: %p (VALID)\n", boot_info->magic);

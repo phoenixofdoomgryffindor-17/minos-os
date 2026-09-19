@@ -28,6 +28,10 @@ typedef struct {
     uint64_t descriptor_size;
     uint32_t descriptor_version;
     void    *memory_map; /* Pointer to EFI_MEMORY_DESCRIPTOR array */
+    uint64_t kernel_image_base;
+    uint64_t kernel_image_size;
+    uint64_t bootstrap_stack_base;
+    uint64_t bootstrap_stack_size;
 } MinOS_BootInfo;
 
 #endif /* MINOS_BOOT_BOOTINFO_H */

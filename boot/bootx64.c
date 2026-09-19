@@ -5,6 +5,9 @@
 
 static MinOS_BootInfo g_boot_info;
 static EFI_GUID g_gop_guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
+extern void kernel_enter(MinOS_BootInfo *);
+extern uint64_t kernel_stack_base(void);
+extern uint64_t kernel_stack_size(void);
 
 static void detect_cpu_vendor(char *vendor_out) {
     uint32_t eax, ebx, ecx, edx;
@@ -98,6 +101,11 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     g_boot_info.descriptor_size     = desc_size;
     g_boot_info.descriptor_version  = desc_ver;
     g_boot_info.magic               = MINOS_BOOTINFO_MAGIC;
+    g_boot_info.kernel_image_base  = ((uint64_t)(uintptr_t)&efi_main) & ~4095ULL;
+    /* The PE image is small today; conservatively protect its first 2 MiB. */
+    g_boot_info.kernel_image_size   = 2 * 1024 * 1024;
+    g_boot_info.bootstrap_stack_base = kernel_stack_base();
+    g_boot_info.bootstrap_stack_size = kernel_stack_size();
 
     serial_printf("[MinOS Boot] UEFI Memory Map: %u entries, %u MB total, %u MB usable\n",
                   (uint32_t)num_entries,
@@ -122,7 +130,7 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     serial_puts("[MinOS Boot] Boot Services exited. Jumping to MinOS kernel_main!\n");
 
     /* 6. Enter MinOS Kernel */
-    kernel_main(&g_boot_info);
+    kernel_enter(&g_boot_info);
 
     /* Should not return */
     halt_loop();

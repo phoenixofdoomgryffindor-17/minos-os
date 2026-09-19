@@ -22,6 +22,10 @@ This roadmap defines the incremental development trajectory for MinOS. Each mile
 ---
 
 ## Milestone 2: Kernel Core & Memory Management
+
+Completed: kernel stack handoff, flat GDT, exception IDT, conventional-memory
+frame allocator, and identity/higher-half/HHDM bootstrap page tables. Interrupts
+remain disabled until an APIC/IRQ policy is introduced.
 * **Objective:** Establish foundational CPU structures and physical/virtual memory management.
 * **Deliverables:**
   * Global Descriptor Table (GDT) and Interrupt Descriptor Table (IDT) for 64-bit long mode.
