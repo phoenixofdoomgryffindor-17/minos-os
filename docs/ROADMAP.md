@@ -40,11 +40,14 @@ remain disabled until an APIC/IRQ policy is introduced.
 * **Objective:** Preemptive multitasking and hardware timing.
 * **Current increment:** The BSP now performs CPUID-gated xAPIC discovery, masks
   the legacy PIC, calibrates an xAPIC periodic timer against PIT channel 2, and
-  exposes a monotonic `timer_ticks()` API. Interrupts remain disabled until
-  GDT, IDT, memory, APIC, and timer state are ready; the QEMU serial test then
-  verifies that vector 32 is delivered by a real periodic interrupt.
+  exposes a monotonic `timer_ticks()` API. It also initializes the PS/2
+  controller, routes legacy PIC IRQ1 to vector 33, and publishes set-1 keyboard
+  events through a reusable input queue. Interrupts remain disabled until GDT,
+  IDT, memory, APIC, timer, and keyboard state are ready; the QEMU serial test
+  then verifies that vector 32 is delivered by a real periodic interrupt.
 * **Deliverables:**
   * Local APIC timer initialization and calibration.
+  * PS/2 keyboard input and reusable input-event queue.
   * Process Control Block (PCB) and Thread Control Block (TCB) structures.
   * Context switching in assembly (`context_switch.s`).
   * Preemptive Round-Robin / MLFQ scheduler.
@@ -58,7 +61,7 @@ remain disabled until an APIC/IRQ policy is introduced.
   * PCI bus enumeration and configuration space access.
   * Virtual File System (VFS) abstraction (`mount`, `open`, `read`, `write`).
   * Tar/CPIO Initial Ramdisk (InitRD) loaded at boot.
-  * PS/2 keyboard and mouse drivers with an event queue.
+  * PS/2 mouse driver with the input event queue.
 
 ---
 

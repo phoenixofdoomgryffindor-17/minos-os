@@ -90,6 +90,8 @@ IRQ_STUB(44) IRQ_STUB(45) IRQ_STUB(46) IRQ_STUB(47)
 void irq_dispatch(struct interrupt_frame *frame) {
     if (frame->vector == 32)
         timer_irq();
+    else if (frame->vector == 33)
+        keyboard_irq();
 }
 
 static void set_gate(uint8_t n, void (*fn)(void)) {

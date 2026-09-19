@@ -14,5 +14,6 @@ struct interrupt_frame {
 void idt_init(void);
 void irq_dispatch(struct interrupt_frame *frame);
 void timer_irq(void);
+void keyboard_irq(void);
 
 #endif

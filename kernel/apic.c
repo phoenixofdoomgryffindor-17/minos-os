@@ -59,6 +59,19 @@ static void pic_mask_all(void) {
     outb(0xA1, 0xFF);
 }
 
+void pic_unmask_irq(uint8_t irq) {
+    if (irq < 8)
+        outb(0x21, (uint8_t)(inb(0x21) & (uint8_t)~(1U << irq)));
+    else if (irq < 16)
+        outb(0xA1, (uint8_t)(inb(0xA1) & (uint8_t)~(1U << (irq - 8))));
+}
+
+void pic_eoi(uint8_t irq) {
+    if (irq >= 8)
+        outb(0xA0, 0x20);
+    outb(0x20, 0x20);
+}
+
 /*
  * Measure one PIT channel-2 gate interval while the APIC counts down.
  * QEMU's PIT is stable enough for this short calibration and this avoids

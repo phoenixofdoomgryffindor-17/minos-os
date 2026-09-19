@@ -6,6 +6,7 @@
 #include "pmm.h"
 #include "vmm.h"
 #include "apic.h"
+#include "keyboard.h"
 
 void kernel_main(MinOS_BootInfo *boot_info) {
     /* 1. Initialize Serial Diagnostics (COM1) */
@@ -102,6 +103,10 @@ void kernel_main(MinOS_BootInfo *boot_info) {
 
     if (apic_timer_init(100) != 0) {
         serial_puts("[MinOS APIC] ERROR: local APIC/timer setup failed; halting.\n");
+        halt_loop();
+    }
+    if (keyboard_init() != 0) {
+        serial_puts("[MinOS Keyboard] ERROR: PS/2 controller setup failed; halting.\n");
         halt_loop();
     }
     serial_puts("[MinOS Kernel] IRQ controller and periodic timer ready; enabling interrupts.\n");
