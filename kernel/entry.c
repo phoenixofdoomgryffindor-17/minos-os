@@ -9,6 +9,7 @@ void kernel_enter(MinOS_BootInfo *boot_info)
 void kernel_enter(MinOS_BootInfo *boot_info) {
     (void)boot_info;
     __asm__ volatile (
+        "cli\n"
         "movq %rdi, %r12\n"
         "leaq kernel_stack+32768(%rip), %rsp\n"
         "andq $-16, %rsp\n"
