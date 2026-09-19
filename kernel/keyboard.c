@@ -153,7 +153,7 @@ int keyboard_init(void) {
         return -1;
     config = inb(KBD_DATA);
     config |= 0x01;  /* keyboard IRQ1 enabled */
-    config &= (uint8_t)~0x40; /* set-1 scan codes, not translated by 8042 */
+    config |= 0x40; /* enable 8042 translation; decoder consumes set-1 codes */
     if (controller_command(KBD_CMD_WRITE_CONFIG) || !wait_input_clear())
         return -1;
     outb(KBD_DATA, config);
