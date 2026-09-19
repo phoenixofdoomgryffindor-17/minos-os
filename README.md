@@ -50,7 +50,8 @@ Milestone 1 implements the smallest possible real bootable x86_64 UEFI kernel th
 * **Pure UEFI Boot:** Boots natively as an x86_64 UEFI application (`BOOTX64.EFI`).
 * **Serial Diagnostics:** Transmits real-time boot status over COM1 (`0x3F8`) UART.
 * **Keyboard Mapping:** PS/2 Set 1 input supports Shift-modified letters, digits,
-  and standard US punctuation (`Shift+1` produces `!`).
+  and standard US punctuation (`Shift+1` produces `!`), plus explicit modifier
+  events for Shift, Ctrl, Alt, and Caps Lock.
 * **GOP Linear Framebuffer:** Direct 32-bit linear framebuffer output with custom styling and text rendering.
 * **CPU Hardware Detection:** Detects CPU vendor string via `CPUID`.
 * **UEFI Memory Map Retrieval:** Inspects system physical memory descriptors.
