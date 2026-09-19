@@ -36,8 +36,8 @@ remain disabled until an APIC/IRQ policy is introduced.
 
 ---
 
-## Milestone 3: Interrupts, Timing & Multitasking
-* **Objective:** Preemptive multitasking and hardware timing.
+## Milestone 3: Interrupts, Timing & Interactive Console
+* **Objective:** Hardware timing and a responsive framebuffer kernel console.
 * **Current increment:** The BSP now performs CPUID-gated xAPIC discovery, masks
   the legacy PIC, calibrates an xAPIC periodic timer against PIT channel 2, and
   exposes a monotonic `timer_ticks()` API. It also initializes the PS/2
@@ -45,6 +45,11 @@ remain disabled until an APIC/IRQ policy is introduced.
   events through a reusable input queue. Interrupts remain disabled until GDT,
   IDT, memory, APIC, timer, and keyboard state are ready; the QEMU serial test
   then verifies that vector 32 is delivered by a real periodic interrupt.
+* **Final increment:** The framebuffer console consumes the generic input-event
+  queue and provides a `MinOS>` prompt, cursor editing, scrolling, and the safe
+  commands `help`, `clear`, `about`, `mem`, and `ticks`. Headless QEMU verifies
+  console readiness and a real timer interrupt. The harness deliberately does
+  not inject fake PS/2 keyboard input, so commands are verified interactively.
 * **Deliverables:**
   * Local APIC timer initialization and calibration.
   * PS/2 keyboard input and reusable input-event queue.

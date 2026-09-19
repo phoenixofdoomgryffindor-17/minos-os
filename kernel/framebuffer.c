@@ -230,3 +230,25 @@ void fb_draw_badge(uint32_t x, uint32_t y, const char *text, uint32_t bg_color, 
     fb_draw_rect_outline(x, y, w, h, COLOR_CARD_BORDER);
     fb_draw_string(x + 8, y + 4, text, fg_color, 0);
 }
+
+void fb_scroll_up(uint32_t y, uint32_t height, uint32_t lines, uint32_t color) {
+    uint32_t pixels;
+    uint32_t c;
+    uint32_t row;
+    if (!g_fb || y >= g_height || !height || !lines) return;
+    if (y + height > g_height) height = g_height - y;
+    pixels = lines * 18U;
+    if (pixels >= height) {
+        fb_fill_rect(0, y, g_width, height, color);
+        return;
+    }
+    c = convert_color(color);
+    for (row = y; row + pixels < y + height; row++) {
+        uint32_t *dst = &g_fb[row * g_pitch_pixels];
+        uint32_t *src = &g_fb[(row + pixels) * g_pitch_pixels];
+        uint32_t x;
+        for (x = 0; x < g_width; x++) dst[x] = src[x];
+    }
+    fb_fill_rect(0, y + height - pixels, g_width, pixels, color);
+    (void)c;
+}

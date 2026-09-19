@@ -11,6 +11,21 @@ The project builds incrementally toward a real, bootable bare-metal operating sy
 
 ---
 
+## Milestone 3: Interactive Kernel Console
+
+The kernel now provides a framebuffer console driven by the reusable input-event
+queue (rather than by keyboard hardware directly). It supports a `MinOS>` prompt,
+typed characters, cursor, newline, backspace, tab, scrolling, and the safe
+commands `help`, `clear`, `about`, `mem`, and `ticks`. The APIC timer and COM1
+serial diagnostics remain enabled, and the main loop sleeps with interrupts
+enabled between input events.
+
+`python run.py --test` verifies the UEFI boot, console initialization, and a real
+periodic timer interrupt in headless QEMU, and captures `build/boot_screen.ppm`.
+QEMU's standard headless harness does not inject PS/2 keystrokes, so command
+execution must currently be verified interactively with `python run.py`; the test
+does not fake keyboard input.
+
 ## Milestone 2: Protected Kernel Foundations
 
 Milestone 2 keeps the direct UEFI design while establishing the foundations needed

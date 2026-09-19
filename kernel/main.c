@@ -7,6 +7,7 @@
 #include "vmm.h"
 #include "apic.h"
 #include "keyboard.h"
+#include "console.h"
 
 void kernel_main(MinOS_BootInfo *boot_info) {
     /* 1. Initialize Serial Diagnostics (COM1) */
@@ -110,7 +111,11 @@ void kernel_main(MinOS_BootInfo *boot_info) {
         halt_loop();
     }
     serial_puts("[MinOS Kernel] IRQ controller and periodic timer ready; enabling interrupts.\n");
+    console_init();
+    serial_puts("[MinOS Console] Ready. Type help for commands.\n");
     __asm__ volatile ("sti" ::: "memory");
-    for (;;)
+    for (;;) {
+        console_poll();
         __asm__ volatile ("hlt");
+    }
 }

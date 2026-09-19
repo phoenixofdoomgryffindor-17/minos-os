@@ -26,6 +26,7 @@ SOURCES = [
     os.path.join(PROJECT_ROOT, "kernel", "apic.c"),
     os.path.join(PROJECT_ROOT, "kernel", "input.c"),
     os.path.join(PROJECT_ROOT, "kernel", "keyboard.c"),
+    os.path.join(PROJECT_ROOT, "kernel", "console.c"),
     os.path.join(PROJECT_ROOT, "kernel", "pmm.c"),
     os.path.join(PROJECT_ROOT, "kernel", "vmm.c"),
 ]

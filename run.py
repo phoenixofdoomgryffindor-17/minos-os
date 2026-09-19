@@ -87,6 +87,7 @@ def run():
                     with open(SERIAL_LOG, "r", encoding="utf-8", errors="replace") as f:
                         log_content = f.read()
                         if ("[MinOS Kernel] Milestone 1 verification complete." in log_content
+                                and "[MinOS Console] Ready. Type help for commands." in log_content
                                 and "[MinOS Timer] First periodic IRQ received" in log_content):
                             success = True
                             break

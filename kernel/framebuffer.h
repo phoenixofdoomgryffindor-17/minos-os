@@ -21,6 +21,7 @@ void fb_draw_rect_outline(uint32_t x, uint32_t y, uint32_t w, uint32_t h, uint32
 void fb_draw_char(uint32_t x, uint32_t y, char c, uint32_t fg, uint32_t bg);
 void fb_draw_string(uint32_t x, uint32_t y, const char *str, uint32_t fg, uint32_t bg);
 void fb_draw_badge(uint32_t x, uint32_t y, const char *text, uint32_t bg_color, uint32_t fg_color);
+void fb_scroll_up(uint32_t y, uint32_t height, uint32_t lines, uint32_t color);
 
 uint32_t fb_get_width(void);
 uint32_t fb_get_height(void);
