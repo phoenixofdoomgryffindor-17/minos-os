@@ -90,7 +90,7 @@ static char key_character(enum input_key key) {
 }
 
 static char scancode_character(uint8_t code, uint8_t shift) {
-    static const char number_shifted[] = ")!@#$%^&*(";
+    static const char number_shifted[] = "!@#$%^&*()";
 
     if (code >= 0x02 && code <= 0x0B)
         return shift ? number_shifted[code - 0x02] : (code == 0x0B ? '0' : (char)('1' + code - 0x02));
