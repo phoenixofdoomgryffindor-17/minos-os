@@ -86,7 +86,8 @@ def run():
                 try:
                     with open(SERIAL_LOG, "r", encoding="utf-8", errors="replace") as f:
                         log_content = f.read()
-                        if "[MinOS Kernel] Milestone 1 verification complete." in log_content:
+                        if ("[MinOS Kernel] Milestone 1 verification complete." in log_content
+                                and "[MinOS Timer] First periodic IRQ received" in log_content):
                             success = True
                             break
                 except Exception:
@@ -127,10 +128,10 @@ def run():
         print("=" * 60)
 
         if success:
-            print("[MinOS Run] TEST PASSED: Kernel booted and all Milestone 1 assertions verified!")
+            print("[MinOS Run] TEST PASSED: Kernel booted and periodic APIC timer IRQ verified!")
             sys.exit(0)
         else:
-            print("[MinOS Run] TEST FAILED: Milestone 1 completion marker not found within timeout.")
+            print("[MinOS Run] TEST FAILED: periodic APIC timer IRQ marker not found within timeout.")
             sys.exit(1)
     else:
         print("[MinOS Run] QEMU running. Close the QEMU window or terminate to exit.")

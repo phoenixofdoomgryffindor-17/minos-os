@@ -1,6 +1,7 @@
 #include "idt.h"
 #include "kernel.h"
 #include "serial.h"
+#include "apic.h"
 
 struct idt_gate {
     uint16_t offset_low, selector;
@@ -87,12 +88,8 @@ IRQ_STUB(40) IRQ_STUB(41) IRQ_STUB(42) IRQ_STUB(43)
 IRQ_STUB(44) IRQ_STUB(45) IRQ_STUB(46) IRQ_STUB(47)
 
 void irq_dispatch(struct interrupt_frame *frame) {
-    /*
-     * No controller is initialized in Milestone 3 yet, so there is no EOI
-     * to issue here.  This safe sink makes every hardware vector return
-     * cleanly until the PIC/APIC subsystem installs a real handler.
-     */
-    (void)frame;
+    if (frame->vector == 32)
+        timer_irq();
 }
 
 static void set_gate(uint8_t n, void (*fn)(void)) {

@@ -5,6 +5,7 @@
 #include "idt.h"
 #include "pmm.h"
 #include "vmm.h"
+#include "apic.h"
 
 void kernel_main(MinOS_BootInfo *boot_info) {
     /* 1. Initialize Serial Diagnostics (COM1) */
@@ -98,8 +99,13 @@ void kernel_main(MinOS_BootInfo *boot_info) {
 
     serial_puts("[MinOS Kernel] Framebuffer graphical boot screen rendered.\n");
     serial_puts("[MinOS Kernel] Milestone 1 verification complete.\n");
-    serial_puts("[MinOS Kernel] Entering halt state (cli; hlt)...\n");
 
-    /* 4. Safe Kernel Halt Loop */
-    halt_loop();
+    if (apic_timer_init(100) != 0) {
+        serial_puts("[MinOS APIC] ERROR: local APIC/timer setup failed; halting.\n");
+        halt_loop();
+    }
+    serial_puts("[MinOS Kernel] IRQ controller and periodic timer ready; enabling interrupts.\n");
+    __asm__ volatile ("sti" ::: "memory");
+    for (;;)
+        __asm__ volatile ("hlt");
 }

@@ -38,6 +38,11 @@ remain disabled until an APIC/IRQ policy is introduced.
 
 ## Milestone 3: Interrupts, Timing & Multitasking
 * **Objective:** Preemptive multitasking and hardware timing.
+* **Current increment:** The BSP now performs CPUID-gated xAPIC discovery, masks
+  the legacy PIC, calibrates an xAPIC periodic timer against PIT channel 2, and
+  exposes a monotonic `timer_ticks()` API. Interrupts remain disabled until
+  GDT, IDT, memory, APIC, and timer state are ready; the QEMU serial test then
+  verifies that vector 32 is delivered by a real periodic interrupt.
 * **Deliverables:**
   * Local APIC timer initialization and calibration.
   * Process Control Block (PCB) and Thread Control Block (TCB) structures.
