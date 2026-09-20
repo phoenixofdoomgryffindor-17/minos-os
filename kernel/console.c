@@ -20,6 +20,7 @@ static uint32_t cursor_column;
 static uint32_t cursor_row;
 static char command[COMMAND_MAX + 1U];
 static uint32_t command_length;
+static uint32_t command_cursor;
 static uint64_t cursor_tick;
 static int cursor_visible;
 
@@ -83,6 +84,7 @@ static void console_prompt(void) {
     console_puts("MinOS> ");
     cursor_column = 7;
     command_length = 0;
+    command_cursor = 0;
     command[0] = '\0';
 }
 
@@ -93,7 +95,7 @@ static void console_redraw_command(void) {
                  width, 16, CONSOLE_BG);
     fb_draw_string(x, CONSOLE_MARGIN + cursor_row * CONSOLE_LINE_HEIGHT,
                    command, CONSOLE_FG, CONSOLE_BG);
-    cursor_column = 7U + command_length;
+    cursor_column = 7U + command_cursor;
 }
 
 static void console_command(void) {
@@ -157,22 +159,53 @@ void console_poll(void) {
             console_cursor();
             console_command();
         } else if (event.key == INPUT_KEY_BACKSPACE) {
-            if (command_length) {
+            if (command_cursor) {
+                uint32_t index = command_cursor - 1U;
+                while (index < command_length) {
+                    command[index] = command[index + 1U];
+                    ++index;
+                }
+                --command_cursor;
                 --command_length;
-                command[command_length] = '\0';
                 console_redraw_command();
             }
         } else if (event.key == INPUT_KEY_TAB) {
             serial_puts("[MinOS Console] Tab event consumed\n");
             uint32_t spaces = 4U - ((cursor_column - 7U) % 4U);
             while (spaces-- && command_length < COMMAND_MAX) {
-                command[command_length++] = ' ';
+                uint32_t index = command_length;
+                while (index > command_cursor) {
+                    command[index] = command[index - 1U];
+                    --index;
+                }
+                command[command_cursor++] = ' ';
+                ++command_length;
                 command[command_length] = '\0';
             }
             console_redraw_command();
+        } else if (event.key == INPUT_KEY_LEFT) {
+            if (command_cursor) {
+                --command_cursor;
+                console_redraw_command();
+            }
+            serial_puts("[MinOS Console] Left arrow consumed\n");
+        } else if (event.key == INPUT_KEY_RIGHT) {
+            if (command_cursor < command_length) {
+                ++command_cursor;
+                console_redraw_command();
+            }
+            serial_puts("[MinOS Console] Right arrow consumed\n");
+        } else if (event.key == INPUT_KEY_UP || event.key == INPUT_KEY_DOWN) {
+            serial_puts("[MinOS Console] Vertical arrow consumed\n");
         } else if (event.character >= 32 && event.character <= 126 &&
                    command_length < COMMAND_MAX) {
-            command[command_length++] = event.character;
+            uint32_t index = command_length;
+            while (index > command_cursor) {
+                command[index] = command[index - 1U];
+                --index;
+            }
+            command[command_cursor++] = event.character;
+            ++command_length;
             command[command_length] = '\0';
             console_redraw_command();
         }

@@ -104,7 +104,8 @@ def run():
                 s.recv(1024) # Greeting
                 s.sendall(b'{"execute": "qmp_capabilities"}\n')
                 s.recv(1024)
-                for key in ("tab", "h", "e", "l", "p", "enter"):
+                for key in ("tab", "left", "right", "up", "down",
+                            "h", "e", "l", "p", "enter"):
                     key_cmd = json.dumps({
                         "execute": "send-key",
                         "arguments": {"keys": [{"type": "qcode", "data": key}]}
@@ -145,7 +146,14 @@ def run():
             if "[MinOS Console] Tab event consumed" not in log_content:
                 print("[MinOS Run] TEST FAILED: Tab event was not consumed by the console.")
                 sys.exit(1)
-            print("[MinOS Run] TEST PASSED: Timer IRQ, keyboard IRQ, and Tab event verified!")
+            for arrow in ("Left", "Right"):
+                if f"[MinOS Console] {arrow} arrow consumed" not in log_content:
+                    print(f"[MinOS Run] TEST FAILED: {arrow} arrow event was not consumed.")
+                    sys.exit(1)
+            if "[MinOS Console] Vertical arrow consumed" not in log_content:
+                print("[MinOS Run] TEST FAILED: Vertical arrow event was not consumed.")
+                sys.exit(1)
+            print("[MinOS Run] TEST PASSED: Timer IRQ, keyboard IRQ, Tab, and arrows verified!")
             sys.exit(0)
         else:
             print("[MinOS Run] TEST FAILED: periodic APIC timer IRQ marker not found within timeout.")
