@@ -137,3 +137,19 @@ limited to a fixed 4 KiB payload.
 deletion; allocation searches the disk for non-overlapping free extents.
 `df` reports the actual data-region capacity and usage.  The metadata record
 table remains bounded at 128 entries for this milestone.
+
+VFS paths are normalized with absolute and relative forms, repeated separators,
+`.` and `..`; traversal above `/` is clamped.  Path components are
+case-sensitive, while BashPlus command names are case-insensitive.  The VFS
+handle API provides open/close/read/write/seek operations with stale-handle
+validation and offset-aware writes.  Mount validation rejects bad checksums,
+record names, parent cycles, duplicate siblings, invalid directory payloads,
+out-of-range extents, and overlapping file extents.
+
+The deterministic QEMU filesystem test invokes a kernel diagnostic command
+through one QMP command rather than thousands of keystrokes.  It exercises
+100-file allocation, readback, deletion, extent reuse, nested paths,
+case-preserving names, copy/rename, handle offsets, and then runs the
+multi-boot persistence sequence.  `tests/qemu_shell.py` separately drives the
+advertised BashPlus commands and invalid-operation paths with a short command
+sequence.

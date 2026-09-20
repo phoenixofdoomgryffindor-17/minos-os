@@ -195,8 +195,9 @@ void keyboard_irq(void) {
         if (event.key != INPUT_KEY_NONE)
             (void)input_push(&event);
         if (event.pressed)
-            serial_printf("[MinOS Keyboard] key_id=%u char=%x queued\n",
-                          (uint64_t)event.key, (uint64_t)(uint8_t)event.character);
+            serial_printf("[MinOS Keyboard] key_id=%u char=%x mods=%u queued\n",
+                          (uint64_t)event.key, (uint64_t)(uint8_t)event.character,
+                          (uint64_t)event.modifiers);
     }
     extended = 0;
     pic_eoi(1);

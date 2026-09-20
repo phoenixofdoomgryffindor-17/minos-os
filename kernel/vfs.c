@@ -25,7 +25,7 @@ static uint8_t volatile_data[VFS_FILE_MAX][4096];
 
 static void zero(void *p, uint32_t n) { uint8_t *b = p; while (n--) *b++ = 0; }
 static uint32_t slen(const char *s) { uint32_t n=0; while (s && s[n]) ++n; return n; }
-static int eqi(const char *a,const char *b) {
+static int same_path(const char *a,const char *b) {
     uint32_t i=0;
     while (a[i] && b[i]) {
         if (a[i] != b[i]) return 0;
@@ -66,24 +66,25 @@ static void path_of(uint32_t n,char *out) {
 }
 static int find(const char *path) {
     char norm[VFS_PATH_MAX+1],candidate[VFS_PATH_MAX+1];
-    uint32_t i; if(vfs_normalize("/",path,norm))return -1; if(eqi(norm,"/"))return 0;
+    uint32_t i; if(vfs_normalize("/",path,norm))return -1; if(same_path(norm,"/"))return 0;
     for(i=1;i<VFS_FILE_MAX;++i) if(records[i].used) {
         path_of(i,candidate);
-        if(eqi(norm,candidate)) return (int)i;
+        if(same_path(norm,candidate)) return (int)i;
     }
     return -1;
 }
 static int parent_name(const char *path,int *parent,char *name) {
     char n[VFS_PATH_MAX+1],p[VFS_PATH_MAX+1];uint32_t i,split=0;
-    if(vfs_normalize("/",path,n)||eqi(n,"/"))return -1;
+    if(vfs_normalize("/",path,n)||same_path(n,"/"))return -1;
     for(i=1;n[i];++i) if(n[i]=='/') split=i;
     copy(name,n+(split?split+1:1),VFS_NAME_MAX+1);if(!name[0])return -1;
     if(split){for(i=0;i<split;++i)p[i]=n[i];p[split]=0;}else copy(p,"/",sizeof(p));
     *parent=find(p);return *parent>=0&&records[*parent].type==VFS_DIRECTORY?0:-1;
 }
-static uint32_t sectors(uint32_t bytes){return bytes?((bytes+511U)/512U):0;}
+static uint32_t sectors(uint32_t bytes){return bytes/512U+(bytes%512U?1U:0U);}
 static int range_free(uint32_t first,uint32_t count,int except) {
-    uint32_t i,start,end; if(!count||first<VFS_DATA_LBA||first+count>block.block_count)return 0;
+    uint32_t i,start,end; if(!count||first<VFS_DATA_LBA||first>block.block_count||
+        count>block.block_count-first)return 0;
     for(i=1;i<VFS_FILE_MAX;++i)if(records[i].used&&records[i].type==VFS_FILE&&i!=(uint32_t)except){
         start=records[i].data_lba;end=start+sectors(records[i].size);
         if(start<first+count&&first<end)return 0;
@@ -91,11 +92,29 @@ static int range_free(uint32_t first,uint32_t count,int except) {
 }
 static int alloc_extent(uint32_t count,int except,uint32_t *first) {
     uint32_t p;if(!count){*first=0;return 0;} if(!disk_backed){*first=0;return 0;}
-    for(p=VFS_DATA_LBA;p+count<=block.block_count;++p)
+    if (count > block.block_count - VFS_DATA_LBA) return -1;
+    for(p=VFS_DATA_LBA;p<=block.block_count-count;++p)
         if(range_free(p,count,except)){*first=p;return 0;}
     return -1;
 }
 static uint32_t checksum(const uint8_t *p,uint32_t n){uint32_t h=2166136261U,i;for(i=0;i<n;++i)h=(h^p[i])*16777619U;return h;}
+static int valid_record_name(const char *name) {
+    uint32_t i, length = slen(name);
+    if (!length || length > VFS_NAME_MAX || name[0] == '/') return 0;
+    for (i = 0; i < length; ++i)
+        if (name[i] == '/' || name[i] == '\0') return 0;
+    return 1;
+}
+static int valid_parent_chain(uint32_t index) {
+    uint32_t steps = 0, current = index;
+    while (current != 0U) {
+        int16_t parent = records[current].parent;
+        if (parent < 0 || parent >= VFS_FILE_MAX || !records[parent].used ||
+            ++steps >= VFS_FILE_MAX) return 0;
+        current = (uint32_t)parent;
+    }
+    return 1;
+}
 static int persist(void) {
     uint8_t all[VFS_META_BYTES];uint32_t i,j,pos=0; if(!disk_backed)return 0;zero(all,sizeof(all));
     *(uint32_t*)(all)=VFS_MAGIC;*(uint32_t*)(all+4)=VFS_VERSION;*(uint32_t*)(all+8)=++generation;*(uint32_t*)(all+12)=VFS_FILE_MAX;
@@ -113,8 +132,34 @@ int vfs_init(void) {
            *(uint32_t*)(all+VFS_META_BYTES-4U)==checksum(all,VFS_META_BYTES-4U)){pos=0;for(i=0;i<VFS_FILE_MAX;++i)allocation[i]=all[16+i];
             for(i=0;i<VFS_FILE_MAX;++i){uint8_t*r=(uint8_t*)&records[i];for(j=0;j<sizeof(struct vfs_record);++j)r[j]=all[16+VFS_FILE_MAX+pos++];}
             generation=*(uint32_t*)(all+8);loaded=records[0].used&&records[0].type==VFS_DIRECTORY&&records[0].parent==-1&&allocation[0];
-            for(i=1;loaded&&i<VFS_FILE_MAX;++i)if(records[i].used!=allocation[i]||(records[i].used&&((records[i].parent<0)||records[i].parent>=VFS_FILE_MAX||!records[records[i].parent].used||!records[i].name[0]||(records[i].type!=VFS_FILE&&records[i].type!=VFS_DIRECTORY)||
-                (records[i].type==VFS_FILE&&disk_backed&&(records[i].data_lba<VFS_DATA_LBA||records[i].data_lba+sectors(records[i].size)>block.block_count)))))loaded=0;
+            for(i=1;loaded&&i<VFS_FILE_MAX;++i) {
+                int invalid = records[i].used != allocation[i];
+                if (records[i].used) {
+                    invalid = invalid ||
+                        records[i].parent < 0 ||
+                        records[i].parent >= VFS_FILE_MAX ||
+                        !records[records[i].parent].used ||
+                        !valid_record_name(records[i].name) ||
+                        !valid_parent_chain(i) ||
+                        (records[i].type != VFS_FILE && records[i].type != VFS_DIRECTORY) ||
+                        (records[i].type == VFS_DIRECTORY &&
+                         (records[i].size || records[i].data_lba));
+                    if (records[i].type == VFS_FILE && disk_backed) {
+                        invalid = invalid ||
+                            (records[i].size && !records[i].data_lba) ||
+                            (records[i].size && records[i].data_lba < VFS_DATA_LBA) ||
+                            records[i].data_lba > block.block_count ||
+                            sectors(records[i].size) > block.block_count - records[i].data_lba;
+                    }
+                }
+                if (invalid) loaded = 0;
+            }
+            for(i=1;loaded&&i<VFS_FILE_MAX;++i)if(records[i].used) {
+                uint32_t j;
+                for(j=i+1;j<VFS_FILE_MAX;++j)
+                    if(records[j].used&&records[i].parent==records[j].parent&&
+                       same_path(records[i].name,records[j].name)) loaded=0;
+            }
             for(i=1;loaded&&i<VFS_FILE_MAX;++i)if(records[i].used&&records[i].type==VFS_FILE) { uint32_t j; for(j=i+1;j<VFS_FILE_MAX;++j) if(records[j].used&&records[j].type==VFS_FILE&&records[i].data_lba<records[j].data_lba+sectors(records[j].size)&&records[j].data_lba<records[i].data_lba+sectors(records[i].size)) loaded=0; }
         }}
     serial_printf("[MinOS VFS] metadata %s, generation=%u\n",loaded?"loaded":"initialized",(uint64_t)generation);
@@ -131,7 +176,38 @@ int vfs_touch(const char*p){int n=find(p);return n>=0&&records[n].type==VFS_FILE
 int vfs_rmdir(const char*p){int n=find(p);uint32_t i;if(n<=0||records[n].type!=VFS_DIRECTORY)return -1;for(i=1;i<VFS_FILE_MAX;++i)if(records[i].used&&records[i].parent==n)return -1;zero(&records[n],sizeof(records[n]));allocation[n]=0;return persist();}
 int vfs_remove(const char*p){int n=find(p);if(n<=0||records[n].type!=VFS_FILE)return -1;zero(&records[n],sizeof(records[n]));allocation[n]=0;return persist();}
 int vfs_read(const char*p,char*b,uint32_t cap,uint32_t*size){int n=find(p);uint32_t i,want;uint8_t sec[512];if(n<0||records[n].type!=VFS_FILE||!b||!size)return -1;want=records[n].size<cap?records[n].size:cap;for(i=0;i<want;++i){uint32_t l=records[n].data_lba+i/512;if(!disk_backed)b[i]=(char)volatile_data[n][i];else{if(block.read(&block,l,sec))return -1;b[i]=sec[i%512];}}*size=want;return 0;}
-int vfs_write(const char*p,const char*d,uint32_t size,int append){int n=find(p);uint32_t old,pos,newbytes,oldsec,newsec,first,i,j;uint8_t sec[512];if(n<0||records[n].type!=VFS_FILE||!d)return -1;old=records[n].size;pos=append?old:0;newbytes=pos+size;if(newbytes<pos||(!disk_backed&&newbytes>sizeof(volatile_data[n])))return -1;oldsec=sectors(old);newsec=sectors(newbytes);if(newsec!=oldsec){if(alloc_extent(newsec,n,&first))return -1;if(disk_backed){for(i=0;i<old;++i){if(block.read(&block,records[n].data_lba+i/512,sec))return -1;if(block.write(&block,first+i/512,sec))return -1;}}records[n].data_lba=first;}for(i=0;i<size;++i){uint32_t at=pos+i;if(!disk_backed)volatile_data[n][at]=(uint8_t)d[i];else{if(block.read(&block,records[n].data_lba+at/512,sec))return -1;sec[at%512]=(uint8_t)d[i];if(block.write(&block,records[n].data_lba+at/512,sec))return -1;}}records[n].size=newbytes;for(j=0;j<newsec;++j)if(disk_backed&&block.read(&block,records[n].data_lba+j,sec))return -1;return persist();}
+static int write_at(const char *p,const char *d,uint32_t size,uint32_t pos,int truncate) {
+    int n=find(p); uint32_t old,newbytes,oldsec,newsec,first,i; uint8_t sec[512];
+    if(n<0||records[n].type!=VFS_FILE||!d)return -1;
+    old=records[n].size; newbytes=pos+size;
+    if(newbytes<pos||(!disk_backed&&newbytes>sizeof(volatile_data[n])))return -1;
+    oldsec=sectors(old); newsec=sectors(newbytes);
+    if(newsec!=oldsec) {
+        if(alloc_extent(newsec,n,&first))return -1;
+        if(disk_backed) {
+            for(i=0;i<oldsec;++i) {
+                if(block.read(&block,records[n].data_lba+i,sec) ||
+                   block.write(&block,first+i,sec)) return -1;
+            }
+        }
+        records[n].data_lba=first;
+    }
+    for(i=0;i<size;++i) {
+        uint32_t at=pos+i;
+        if(!disk_backed) volatile_data[n][at]=(uint8_t)d[i];
+        else {
+            if(block.read(&block,records[n].data_lba+at/512,sec))return -1;
+            sec[at%512]=(uint8_t)d[i];
+            if(block.write(&block,records[n].data_lba+at/512,sec))return -1;
+        }
+    }
+    if(truncate||newbytes>old) records[n].size=newbytes;
+    return persist();
+}
+int vfs_write(const char*p,const char*d,uint32_t size,int append){
+    int n=find(p); if(n<0)return -1;
+    return write_at(p,d,size,append?records[n].size:0,!append);
+}
 int vfs_list(const char*p,struct vfs_dirent*e,uint32_t max,uint32_t*c){int n=find(p);uint32_t i,o=0;if(n<0||records[n].type!=VFS_DIRECTORY||!e||!c)return -1;for(i=1;i<VFS_FILE_MAX&&o<max;++i)if(records[i].used&&records[i].parent==n){copy(e[o].name,records[i].name,sizeof(e[o].name));e[o].type=(enum vfs_type)records[i].type;e[o].size=records[i].size;++o;}*c=o;return 0;}
 int vfs_readdir(const char*p,struct vfs_dirent*e,uint32_t max,uint32_t*c){return vfs_list(p,e,max,c);}
 int vfs_usage(struct vfs_usage*u){uint32_t i,used=0,total=0; if(!u)return -1;if(disk_backed){total=block.block_count>VFS_DATA_LBA?(block.block_count-VFS_DATA_LBA)*512U:0;for(i=1;i<VFS_FILE_MAX;++i)if(records[i].used&&records[i].type==VFS_FILE)used+=sectors(records[i].size)*512U;}else{total=0;for(i=1;i<VFS_FILE_MAX;++i)if(records[i].used&&records[i].type==VFS_FILE)used+=records[i].size;}u->total_bytes=total;u->used_bytes=used;u->free_bytes=total>used?total-used:0;return 0;}
@@ -149,4 +225,4 @@ int vfs_open(const char*p,int w,struct vfs_handle*h){int n=find(p),i;if(n<0||rec
 int vfs_close(struct vfs_handle*h){if(!handle_valid(h))return -1;zero(&handles[h->id-1U],sizeof(handles[0]));zero(h,sizeof(*h));return 0;}
 int vfs_seek(struct vfs_handle*h,int32_t off,int whence){uint32_t base,n;if(!handle_valid(h))return -1;base=whence==0?0:(whence==1?h->offset:records[h->slot].size);if(off<0&&base<(uint32_t)(-off))return -1;n=off<0?base-(uint32_t)(-off):base+(uint32_t)off;if(n>records[h->slot].size)return -1;h->offset=n;handles[h->id-1U].offset=n;return 0;}
 int vfs_read_handle(struct vfs_handle*h,void*b,uint32_t c,uint32_t*s){uint32_t i,want;uint8_t sec[512],*dst=(uint8_t*)b;if(!handle_valid(h)||!h->readable||!b||!s)return -1;want=records[h->slot].size-h->offset;if(want>c)want=c;for(i=0;i<want;++i){if(disk_backed){if(block.read(&block,records[h->slot].data_lba+(h->offset+i)/512,sec))return -1;dst[i]=sec[(h->offset+i)%512];}else dst[i]=volatile_data[h->slot][h->offset+i];}*s=want;h->offset+=want;handles[h->id-1U].offset=h->offset;return 0;}
-int vfs_write_handle(struct vfs_handle*h,const void*d,uint32_t s){char path[VFS_PATH_MAX+1];if(!handle_valid(h)||!h->writable||!d)return -1;path_of((uint32_t)h->slot,path);if(vfs_write(path,d,s,1))return -1;h->offset=records[h->slot].size;handles[h->id-1U].offset=h->offset;return 0;}
+int vfs_write_handle(struct vfs_handle*h,const void*d,uint32_t s){char path[VFS_PATH_MAX+1];if(!handle_valid(h)||!h->writable||!d)return -1;path_of((uint32_t)h->slot,path);if(write_at(path,(const char*)d,s,h->offset,0))return -1;h->offset+=s;handles[h->id-1U].offset=h->offset;return 0;}

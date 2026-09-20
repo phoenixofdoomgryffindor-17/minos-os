@@ -114,6 +114,31 @@ def run():
                     s.sendall(key_cmd)
                     time.sleep(0.05)
                     s.recv(1024)
+                for key in ("home", "end", "delete"):
+                    key_cmd = json.dumps({
+                        "execute": "send-key",
+                        "arguments": {"keys": [{"type": "qcode", "data": key}]}
+                    }).encode("utf-8") + b"\n"
+                    s.sendall(key_cmd)
+                    time.sleep(0.05)
+                    s.recv(1024)
+                for keys in (["ctrl", "a"], ["ctrl", "c"], ["ctrl", "l"]):
+                    key_cmd = json.dumps({
+                        "execute": "send-key",
+                        "arguments": {"keys": [{"type": "qcode", "data": key} for key in keys]}
+                    }).encode("utf-8") + b"\n"
+                    s.sendall(key_cmd)
+                    time.sleep(0.05)
+                    s.recv(1024)
+                for keys in (["shift", "a"], ["ctrl", "a"], ["alt", "a"],
+                             ["caps_lock"], ["a"]):
+                    key_cmd = json.dumps({
+                        "execute": "send-key",
+                        "arguments": {"keys": [{"type": "qcode", "data": key} for key in keys]}
+                    }).encode("utf-8") + b"\n"
+                    s.sendall(key_cmd)
+                    time.sleep(0.05)
+                    s.recv(1024)
                 screendump_cmd = json.dumps({"execute": "screendump", "arguments": {"filename": screenshot_ppm}}).encode('utf-8') + b'\n'
                 s.sendall(screendump_cmd)
                 time.sleep(0.5)
@@ -153,6 +178,22 @@ def run():
                     sys.exit(1)
             if "[MinOS Console] Vertical arrow consumed" not in log_content:
                 print("[MinOS Run] TEST FAILED: Vertical arrow event was not consumed.")
+                sys.exit(1)
+            for edit in ("Home", "End", "Delete", "Ctrl+A", "Ctrl+C", "Ctrl+L"):
+                if f"[MinOS Console] {edit} consumed" not in log_content:
+                    print(f"[MinOS Run] TEST FAILED: {edit} event was not consumed.")
+                    sys.exit(1)
+            if "[MinOS Keyboard] key_id=1 char=0x41 mods=1 queued" not in log_content:
+                print("[MinOS Run] TEST FAILED: Shift modifier was not observed.")
+                sys.exit(1)
+            if "[MinOS Keyboard] key_id=1 char=0x61 mods=2 queued" not in log_content:
+                print("[MinOS Run] TEST FAILED: Ctrl modifier was not observed.")
+                sys.exit(1)
+            if "[MinOS Keyboard] key_id=1 char=0x61 mods=4 queued" not in log_content:
+                print("[MinOS Run] TEST FAILED: Alt modifier was not observed.")
+                sys.exit(1)
+            if "[MinOS Keyboard] key_id=1 char=0x41 mods=8 queued" not in log_content:
+                print("[MinOS Run] TEST FAILED: Caps Lock modifier was not observed.")
                 sys.exit(1)
             if "[MinOS VFS] metadata" not in log_content:
                 print("[MinOS Run] TEST FAILED: VFS metadata validation marker not found.")

@@ -68,7 +68,7 @@ remain disabled until an APIC/IRQ policy is introduced.
     checksum/bounds validation.
   * [x] VFS handles (`open`, `close`, `read`, `write`, `seek`) plus directory and
     metadata APIs, and BashPlus filesystem commands.
-  * [x] Quoted arguments, case-insensitive paths/commands, CWD normalization,
+  * [x] Quoted arguments, case-sensitive paths, case-insensitive commands, CWD normalization,
     cursor editing, history, and categorized help.
   * [ ] PCI bus enumeration and configuration space access.
   * [ ] Tar/CPIO Initial Ramdisk (InitRD) loaded at boot.

@@ -106,6 +106,12 @@ It invokes the kernel's `fstest` diagnostic through QEMU and exercises real
 filesystem allocation, reads, deletion, block reuse, and multi-boot
 persistence without injecting thousands of shell keystrokes.
 
+`tests\qemu_shell.py` is the short shell acceptance test for command dispatch,
+quoted arguments, relative paths, case preservation, copy/rename, tree/find,
+`df`, history, and clean errors for invalid operations.  The normal
+`run.py --test` regression also checks Home/End/Delete, Ctrl shortcuts,
+Shift/Ctrl/Alt/Caps Lock, Tab, arrows, and the existing keyboard path.
+
 ### Run MinOS in QEMU
 Launch QEMU with the generated disk image, UEFI firmware, and COM1 serial logging:
 ```cmd

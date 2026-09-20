@@ -84,7 +84,10 @@ static void console_puts(const char *text) {
     while (text && *text) console_putc(*text++);
 }
 
-static void console_error(void) { console_puts("error: command failed or invalid arguments\n"); }
+static void console_error(void) {
+    console_puts("error: command failed or invalid arguments\n");
+    serial_puts("[MinOS Console] error\n");
+}
 static int console_path(const char *arg, char *out) {
     return vfs_normalize(cwd, arg ? arg : ".", out);
 }
@@ -259,6 +262,59 @@ static void console_filesystem_test(void) {
             serial_puts("[MinOS FS Test] FAIL reuse\n"); return;
         }
     }
+    for (i = 0; i < 100U; ++i) {
+        path[0] = '/'; path[1] = 'r';
+        path[2] = (char)('0' + (i / 10U));
+        path[3] = (char)('0' + (i % 10U)); path[4] = '\0';
+        if (vfs_remove(path) != 0) { serial_puts("[MinOS FS Test] FAIL cleanup\n"); return; }
+    }
+    if (vfs_touch("/full") != 0 || vfs_write("/full", "x", 0xFFFFFFFFU, 0) == 0) {
+        serial_puts("[MinOS FS Test] FAIL disk-full rejection\n"); return;
+    }
+    if (vfs_remove("/full") != 0) {
+        serial_puts("[MinOS FS Test] FAIL disk-full cleanup\n"); return;
+    }
+    serial_puts("[MinOS FS Test] disk-full allocation rejected safely\n");
+    if (vfs_mkdir("/MyProject") != 0 || vfs_mkdir("/MyProject/Nested") != 0 ||
+        vfs_touch("/MyProject/README.txt") != 0 ||
+        vfs_write("/MyProject/README.txt", "MinOS test", 10U, 0) != 0 ||
+        vfs_touch("/MyProject/test-file") != 0 ||
+        vfs_touch("/MyProject/test_file") != 0 ||
+        vfs_touch("/MyProject/file123") != 0) {
+        serial_puts("[MinOS FS Test] FAIL paths\n"); return;
+    }
+    {
+        char normalized[VFS_PATH_MAX + 1], copied[VFS_PATH_MAX + 1];
+        struct vfs_stat st;
+        struct vfs_handle handle;
+        uint32_t read_size;
+        if (vfs_normalize("/MyProject", "../MyProject/./README.txt", normalized) != 0 ||
+            vfs_stat(normalized, &st) != 0 || st.type != VFS_FILE || st.size != 10U ||
+            vfs_normalize("/", "/MyProject/../MyProject/Nested", normalized) != 0 ||
+            vfs_mkdir("/MyProject/Nested/../Other") != 0 ||
+            vfs_open("/MyProject/README.txt", 1, &handle) < 0 ||
+            vfs_seek(&handle, 5, 0) != 0 ||
+            vfs_write_handle(&handle, "OS", 2U) != 0 ||
+            vfs_seek(&handle, 0, 0) != 0 ||
+            vfs_read_handle(&handle, copied, sizeof(copied), &read_size) != 0 ||
+            read_size != 10U || copied[5] != 'O' || copied[6] != 'S' ||
+            vfs_close(&handle) != 0 ||
+            vfs_stat("/myproject/README.txt", &st) == 0 ||
+            vfs_copy("/MyProject/README.txt", "/MyProject/Copy.txt") != 0 ||
+            vfs_rename("/MyProject/Copy.txt", "/MyProject/Renamed.txt") != 0) {
+            serial_puts("[MinOS FS Test] FAIL paths/handles\n"); return;
+        }
+    }
+    if (vfs_remove("/MyProject/Renamed.txt") != 0 ||
+        vfs_remove("/MyProject/README.txt") != 0 ||
+        vfs_remove("/MyProject/test-file") != 0 ||
+        vfs_remove("/MyProject/test_file") != 0 ||
+        vfs_remove("/MyProject/file123") != 0 ||
+        vfs_rmdir("/MyProject/Nested/../Other") != 0 ||
+        vfs_rmdir("/MyProject/Nested") != 0 ||
+        vfs_rmdir("/MyProject") != 0) {
+        serial_puts("[MinOS FS Test] FAIL cleanup paths\n"); return;
+    }
     serial_puts("[MinOS FS Test] passed 100/100; blocks reclaimed and reused\n");
 }
 
@@ -337,6 +393,9 @@ static void console_command(void) {
         if (console_arg(argv, argc, 1, path) == 0 && vfs_stat_path(path, &st) == 0) {
             console_puts(st.type == VFS_DIRECTORY ? "directory " : "file ");
             console_put_u64(st.size); console_puts(" bytes\n");
+            serial_printf("[MinOS Console] stat: %s size=%u\n",
+                          st.type == VFS_DIRECTORY ? "directory" : "file",
+                          (uint64_t)st.size);
         } else console_error();
     } else if (console_streq(argv[0], "cat")) {
         if (console_arg(argv, argc, 1, path) == 0) {
@@ -388,6 +447,9 @@ static void console_command(void) {
             console_put_u64(usage.total_bytes); console_puts("  ");
             console_put_u64(usage.used_bytes); console_puts("  ");
             console_put_u64(usage.free_bytes); console_putc('\n');
+            serial_printf("[MinOS Console] df: total=%u used=%u free=%u\n",
+                          (uint64_t)usage.total_bytes, (uint64_t)usage.used_bytes,
+                          (uint64_t)usage.free_bytes);
         } else console_error();
     } else if (console_streq(argv[0], "echo")) {
         for (i = 1; i < argc; ++i) { if (i > 1) console_putc(' '); console_puts(argv[i]); } console_putc('\n');
@@ -462,10 +524,13 @@ void console_poll(void) {
             }
             serial_puts("[MinOS Console] Right arrow consumed\n");
         } else if (event.key == INPUT_KEY_HOME) {
+            serial_puts("[MinOS Console] Home consumed\n");
             command_cursor = 0; console_redraw_command();
         } else if (event.key == INPUT_KEY_END) {
+            serial_puts("[MinOS Console] End consumed\n");
             command_cursor = command_length; console_redraw_command();
         } else if (event.key == INPUT_KEY_DELETE) {
+            serial_puts("[MinOS Console] Delete consumed\n");
             if (command_cursor < command_length) {
                 uint32_t index = command_cursor;
                 while (index < command_length) { command[index] = command[index + 1U]; ++index; }
@@ -481,6 +546,7 @@ void console_poll(void) {
                 console_set_command(history_index ? history[(history_index - 1U) % HISTORY_MAX] : "");
             }
         } else if ((event.modifiers & INPUT_MOD_CTRL) && event.key == INPUT_KEY_A) {
+            serial_puts("[MinOS Console] Ctrl+A consumed\n");
             command_cursor = 0; console_redraw_command();
         } else if ((event.modifiers & INPUT_MOD_CTRL) && event.key == INPUT_KEY_E) {
             command_cursor = command_length; console_redraw_command();
@@ -489,8 +555,10 @@ void console_poll(void) {
         } else if ((event.modifiers & INPUT_MOD_CTRL) && event.key == INPUT_KEY_K) {
             command_length = command_cursor; command[command_length] = 0; console_redraw_command();
         } else if ((event.modifiers & INPUT_MOD_CTRL) && event.key == INPUT_KEY_C) {
+            serial_puts("[MinOS Console] Ctrl+C consumed\n");
             console_puts("^C\n"); console_prompt();
         } else if ((event.modifiers & INPUT_MOD_CTRL) && event.key == INPUT_KEY_L) {
+            serial_puts("[MinOS Console] Ctrl+L consumed\n");
             fb_clear(CONSOLE_BG); cursor_column = 0; cursor_row = 0; console_prompt();
         } else if (event.character >= 32 && event.character <= 126 &&
                    command_length < COMMAND_MAX) {

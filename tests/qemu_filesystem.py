@@ -1,8 +1,8 @@
-"""QEMU acceptance test for persistent MinOS filesystem allocation.
+"""Deterministic QEMU acceptance test for the persistent MinOS filesystem.
 
-The test intentionally drives the real PS/2 path through QMP.  It creates,
-reads, deletes, and recreates 100 files, then performs a reboot persistence
-cycle.  Run from the repository root after the toolchain has been installed.
+The 100-file workload is invoked once through the kernel's real diagnostic
+command, avoiding thousands of keyboard events.  Persistence still uses the
+real BashPlus commands across separate QEMU boots.
 """
 import json
 import os
@@ -42,6 +42,7 @@ def wait_for(log, marker, seconds=20):
     return False
 
 def main():
+    subprocess.check_call([sys.executable, os.path.join(ROOT, "build.py"), "--clean-image"])
     def boot(phase, commands):
         log = os.path.join(BUILD, "fs_acceptance_%d.log" % phase)
         port = 5556 + phase
