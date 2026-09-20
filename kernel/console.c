@@ -229,6 +229,39 @@ static void console_set_command(const char *text) {
     command[i] = 0; command_length = i; command_cursor = i; console_redraw_command();
 }
 
+static void console_filesystem_test(void) {
+    char path[VFS_PATH_MAX + 1], data[32], readback[32];
+    uint32_t i, size;
+    serial_puts("[MinOS FS Test] starting 100-file allocation/read/delete/reuse test\n");
+    for (i = 0; i < 100U; ++i) {
+        serial_printf("[MinOS FS Test] create %u/100\n", (uint64_t)(i + 1U));
+        path[0] = '/'; path[1] = 'f';
+        if (i >= 100U) return;
+        path[2] = (char)('0' + (i / 10U));
+        path[3] = (char)('0' + (i % 10U));
+        path[4] = '\0';
+        if (vfs_touch(path) != 0) { serial_puts("[MinOS FS Test] FAIL create\n"); return; }
+        data[0] = 'v'; data[1] = '0' + (char)(i / 10U);
+        data[2] = '0' + (char)(i % 10U); data[3] = '\0';
+        if (vfs_write(path, data, 3U, 0) != 0 ||
+            vfs_read(path, readback, sizeof(readback), &size) != 0 ||
+            size != 3U || readback[0] != data[0] || readback[1] != data[1] ||
+            readback[2] != data[2]) {
+            serial_puts("[MinOS FS Test] FAIL readback\n"); return;
+        }
+        if (vfs_remove(path) != 0) { serial_puts("[MinOS FS Test] FAIL delete\n"); return; }
+    }
+    for (i = 0; i < 100U; ++i) {
+        path[0] = '/'; path[1] = 'r';
+        path[2] = (char)('0' + (i / 10U));
+        path[3] = (char)('0' + (i % 10U)); path[4] = '\0';
+        if (vfs_touch(path) != 0 || vfs_write(path, "reuse", 5U, 0) != 0) {
+            serial_puts("[MinOS FS Test] FAIL reuse\n"); return;
+        }
+    }
+    serial_puts("[MinOS FS Test] passed 100/100; blocks reclaimed and reused\n");
+}
+
 static void console_command(void) {
     char line[COMMAND_MAX + 1], *argv[8], path[VFS_PATH_MAX + 1], path2[VFS_PATH_MAX + 1];
     uint32_t argc, i, size;
@@ -250,6 +283,7 @@ static void console_command(void) {
         console_puts("Navigation: pwd ls cd tree find\n");
         console_puts("Files: create mkdir rmdir touch cat write append rm cp mv rename stat df\n");
         console_puts("Shell: echo history\n");
+        console_puts("Diagnostics: fstest\n");
     } else if (console_streq(argv[0], "clear")) {
         fb_clear(CONSOLE_BG);
         cursor_column = 0;
@@ -359,6 +393,8 @@ static void console_command(void) {
         for (i = 1; i < argc; ++i) { if (i > 1) console_putc(' '); console_puts(argv[i]); } console_putc('\n');
     } else if (console_streq(argv[0], "history")) {
         for (i = 0; i < history_count; ++i) { console_put_u64(i + 1U); console_puts(" "); console_puts(history[i]); console_putc('\n'); }
+    } else if (console_streq(argv[0], "fstest")) {
+        console_filesystem_test();
     } else {
         console_puts("Unknown command. Type help.\n");
     }

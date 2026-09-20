@@ -42,7 +42,6 @@ def wait_for(log, marker, seconds=20):
     return False
 
 def main():
-    subprocess.check_call([sys.executable, os.path.join(ROOT, "build.py"), "--clean-image"])
     def boot(phase, commands):
         log = os.path.join(BUILD, "fs_acceptance_%d.log" % phase)
         port = 5556 + phase
@@ -62,7 +61,11 @@ def main():
             s.recv(4096); qmp(s, {"execute": "qmp_capabilities"})
             for command in commands:
                 type_command(s, command)
-                time.sleep(.2)
+                if command == "fstest":
+                    if not wait_for(log, "[MinOS FS Test] passed 100/100", 60):
+                        raise RuntimeError("100-file filesystem test did not finish")
+                else:
+                    time.sleep(.2)
             time.sleep(.5)
         finally:
             if s is not None:
@@ -73,19 +76,11 @@ def main():
         return open(log, encoding="utf-8", errors="replace").read()
 
     try:
-        phase1 = []
-        for i in range(100):
-            name = "/f" + str(i)
-            phase1 += ["touch " + name, "write " + name + " value" + str(i)]
-        for i in range(100):
-            phase1 += ["cat /f" + str(i), "rm /f" + str(i)]
-        for i in range(100):
-            name = "/reuse" + str(i)
-            phase1 += ["touch " + name, "write " + name + " reused"]
-        phase1 += ["touch /persist", "write /persist first"]
-        first = boot(1, phase1)
-        if "[MinOS VFS] metadata initialized" not in first:
-            raise RuntimeError("clean filesystem did not initialize")
+        first = boot(1, ["fstest", "touch /persist", "write /persist first"])
+        if ("[MinOS VFS] metadata initialized" not in first and
+                "[MinOS VFS] metadata loaded" not in first) or \
+                "[MinOS FS Test] passed 100/100" not in first:
+            raise RuntimeError("filesystem did not mount or complete the test")
 
         second = boot(2, ["append /persist second", "cat /persist", "rm /persist"])
         if "[MinOS VFS] metadata loaded" not in second or "[MinOS Console] cat output: firstsecond" not in second:

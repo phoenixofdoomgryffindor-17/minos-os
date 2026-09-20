@@ -96,6 +96,16 @@ The build updates the UEFI boot area while preserving the filesystem area of an
 existing image. Use `python build.py --clean-image` only when an intentionally
 clean filesystem is required.
 
+Run the deterministic filesystem acceptance test with:
+
+```cmd
+python tests\qemu_filesystem.py
+```
+
+It invokes the kernel's `fstest` diagnostic through QEMU and exercises real
+filesystem allocation, reads, deletion, block reuse, and multi-boot
+persistence without injecting thousands of shell keystrokes.
+
 ### Run MinOS in QEMU
 Launch QEMU with the generated disk image, UEFI firmware, and COM1 serial logging:
 ```cmd
