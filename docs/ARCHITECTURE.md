@@ -126,11 +126,13 @@ future MinFS journal.
 
 ATA exposes a checked 512-byte block-device interface (`block_size`,
 `block_count`, bounded read/write, and flush) to higher layers.  VFS metadata
-starts at LBA 2048 and is eight sectors: magic, version 2, generation, a
-64-entry allocation bitmap, and fixed-size directory records.  A mount accepts
+starts at LBA 2048 and is twelve sectors: magic, version 2, generation, a
+128-entry allocation bitmap, and fixed-size directory records.  A mount accepts
 metadata only when the version, record count, root, parent links, and
 allocation bitmap validate; otherwise it starts an empty filesystem rather
 than interpreting stale bytes.  Each allocated entry has eight data sectors
 (a documented 4 KiB maximum file size), and deletion clears its persistent
-allocation bit.  The fixed-size layout is intentional for this milestone and
-`df` reports its actual allocated capacity.
+allocation bit.  File extents grow in 512-byte sectors and are reclaimed by
+deletion; allocation searches the disk for non-overlapping free extents.
+`df` reports the actual data-region capacity and usage.  The metadata record
+table remains bounded at 128 entries for this milestone.

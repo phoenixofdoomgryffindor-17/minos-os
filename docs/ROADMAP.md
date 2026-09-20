@@ -64,8 +64,12 @@ remain disabled until an APIC/IRQ policy is introduced.
 * **Objective:** Storage abstraction and file system access.
 * **Deliverables:**
   * [x] Safe ATA primary-master 28-bit PIO identify/read/write driver.
-  * [x] Persistent bounded MinOS VFS metadata, directories, files, and path normalization.
-  * [x] Console filesystem commands and command history/editing shortcuts.
+  * [x] Persistent extent allocation with growth, reuse, deletion reclamation, and
+    checksum/bounds validation.
+  * [x] VFS handles (`open`, `close`, `read`, `write`, `seek`) plus directory and
+    metadata APIs, and BashPlus filesystem commands.
+  * [x] Quoted arguments, case-insensitive paths/commands, CWD normalization,
+    cursor editing, history, and categorized help.
   * [ ] PCI bus enumeration and configuration space access.
   * [ ] Tar/CPIO Initial Ramdisk (InitRD) loaded at boot.
   * PS/2 mouse driver with the input event queue.
@@ -114,5 +118,6 @@ remain disabled until an APIC/IRQ policy is introduced.
 The current shell supports quoted and escaped arguments, case-preserving file
 contents, `uname`, actual VFS allocation statistics via `df`, Ctrl+C/Ctrl+L,
 and PS/2 extended Home/End/Delete keys.  The filesystem remains deliberately
-bounded to 64 directory entries and 4 KiB per entry; this is reported by the
-filesystem rather than presented as an unbounded disk.
+bounded to 128 metadata entries, while file extents grow in 512-byte sectors
+and are reclaimed on deletion; this is reported by the filesystem rather than
+presented as an unbounded disk.

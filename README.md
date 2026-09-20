@@ -93,8 +93,8 @@ Compile the bootloader and kernel, and assemble the bootable FAT disk image (`bu
 python build.py
 ```
 The build updates the UEFI boot area while preserving the filesystem area of an
-existing image. Delete `build\minos.img` only when an intentionally clean
-filesystem is required.
+existing image. Use `python build.py --clean-image` only when an intentionally
+clean filesystem is required.
 
 ### Run MinOS in QEMU
 Launch QEMU with the generated disk image, UEFI firmware, and COM1 serial logging:

@@ -247,8 +247,9 @@ static void console_command(void) {
     } else if (console_streq(argv[0], "help")) {
         console_puts("BashPlus - MinOS shell\n");
         console_puts("System: about clear help mem ticks uptime uname reboot shutdown\n");
-        console_puts("Files:  pwd ls cd mkdir rmdir touch cat write append rm cp mv tree find df\n");
-        console_puts("Shell:  echo history\n");
+        console_puts("Navigation: pwd ls cd tree find\n");
+        console_puts("Files: create mkdir rmdir touch cat write append rm cp mv rename stat df\n");
+        console_puts("Shell: echo history\n");
     } else if (console_streq(argv[0], "clear")) {
         fb_clear(CONSOLE_BG);
         cursor_column = 0;
@@ -289,13 +290,20 @@ static void console_command(void) {
             uint32_t j; for (j = 0; path[j]; ++j) cwd[j] = path[j]; cwd[j] = 0;
         } else console_error();
     } else if (console_streq(argv[0], "mkdir") || console_streq(argv[0], "rmdir") ||
-               console_streq(argv[0], "touch") || console_streq(argv[0], "rm")) {
+               console_streq(argv[0], "touch") || console_streq(argv[0], "create") ||
+               console_streq(argv[0], "rm")) {
         if (console_arg(argv, argc, 1, path) == 0) {
             int rc = console_streq(argv[0], "mkdir") ? vfs_mkdir(path) :
                      console_streq(argv[0], "rmdir") ? vfs_rmdir(path) :
-                     console_streq(argv[0], "touch") ? vfs_touch(path) : vfs_remove(path);
+                     (console_streq(argv[0], "touch") || console_streq(argv[0], "create")) ? vfs_touch(path) : vfs_remove(path);
             if (rc) console_error();
         }
+    } else if (console_streq(argv[0], "stat")) {
+        struct vfs_stat st;
+        if (console_arg(argv, argc, 1, path) == 0 && vfs_stat_path(path, &st) == 0) {
+            console_puts(st.type == VFS_DIRECTORY ? "directory " : "file ");
+            console_put_u64(st.size); console_puts(" bytes\n");
+        } else console_error();
     } else if (console_streq(argv[0], "cat")) {
         if (console_arg(argv, argc, 1, path) == 0) {
             if (vfs_read(path, data, sizeof(data) - 1U, &size) == 0) {
@@ -320,7 +328,8 @@ static void console_command(void) {
             }
             if (vfs_write(path, data, at, console_streq(argv[0], "append")) != 0) console_error();
         } else console_error();
-    } else if (console_streq(argv[0], "cp") || console_streq(argv[0], "mv")) {
+    } else if (console_streq(argv[0], "cp") || console_streq(argv[0], "mv") ||
+               console_streq(argv[0], "rename")) {
         if (argc >= 3 && console_arg(argv, argc, 1, path) == 0 && console_arg(argv, argc, 2, path2) == 0 &&
             (console_streq(argv[0], "cp") ? vfs_copy(path, path2) : vfs_move(path, path2))) console_error();
     } else if (console_streq(argv[0], "tree")) {

@@ -45,12 +45,14 @@ def check_toolchain():
             print("[MinOS Build] Toolchain setup failed!")
             sys.exit(1)
 
-def build():
+def build(clean_image=False):
     check_toolchain()
     os.makedirs(BUILD_DIR, exist_ok=True)
     
     efi_output = os.path.join(BUILD_DIR, "BOOTX64.EFI")
     img_output = os.path.join(BUILD_DIR, "minos.img")
+    if clean_image and os.path.exists(img_output):
+        os.remove(img_output)
 
     print("[MinOS Build] Compiling MinOS UEFI Kernel...")
     cmd = [
@@ -89,4 +91,4 @@ def build():
     print(f"  Boot Disk Image:  {img_output}")
 
 if __name__ == "__main__":
-    build()
+    build("--clean-image" in sys.argv[1:])
