@@ -119,7 +119,7 @@ static int parent_and_name(const char *path, int *parent, char *name) {
     uint32_t i, split = 0;
     if (vfs_normalize("/", path, normalized) != 0 || eq(normalized, "/")) return -1;
     for (i = 1; normalized[i]; ++i) if (normalized[i] == '/') split = i;
-    copy(name, normalized + split + (split != 0), VFS_NAME_MAX + 1);
+    copy(name, normalized + (split ? split + 1U : 1U), VFS_NAME_MAX + 1);
     if (!split) copy(parent_path, "/", sizeof(parent_path));
     else { for (i = 0; i < split; ++i) parent_path[i] = normalized[i]; parent_path[split] = 0; }
     *parent = find(parent_path);
@@ -142,6 +142,7 @@ static int persist(void) {
 
 int vfs_init(void) {
     uint8_t sector[512]; uint32_t i;
+    int loaded = 0;
     zero(records, sizeof(records)); generation = 0;
     disk_backed = ata_primary_master_present();
     records[0].used = 1; records[0].type = VFS_DIRECTORY; records[0].parent = -1;
@@ -157,8 +158,17 @@ int vfs_init(void) {
                 for (j = 0; j < sizeof(struct vfs_record); ++j) raw[j] = all[8 + pos++];
             }
             generation = *(uint32_t *)(all + 4);
+            loaded = 1;
         }
     }
+    serial_printf("[MinOS VFS] metadata %s, generation=%u\n",
+                  loaded ? "loaded" : "initialized",
+                  (uint64_t)generation);
+    for (i = 1; i < VFS_FILE_MAX; ++i)
+        if (records[i].used)
+            serial_printf("[MinOS VFS] record=%u name=%s parent=%d size=%u\n",
+                          (uint64_t)i, records[i].name, records[i].parent,
+                          (uint64_t)records[i].size);
     serial_puts("[MinOS VFS] mounted persistent metadata filesystem at /.\n");
     return persist();
 }
@@ -187,7 +197,11 @@ int vfs_read(const char *p, char *b, uint32_t cap, uint32_t *size) {
     int n=find(p); uint32_t i, want; uint8_t sector[512];
     if(n<0||records[n].type!=VFS_FILE||!b||!size)return -1;
     if (disk_backed) for (i = 0; i < 8; ++i) {
-        if (ata_read28(records[n].data_lba + i, sector) != 0) return -1;
+        if (ata_read28(records[n].data_lba + i, sector) != 0) {
+            serial_printf("[MinOS VFS] read failed lba=%u\n",
+                          (uint64_t)(records[n].data_lba + i));
+            return -1;
+        }
         { uint32_t j; for (j = 0; j < 512; ++j) contents[n][i * 512U + j] = sector[j]; }
     }
     want=records[n].size<cap?records[n].size:cap; for(i=0;i<want;++i)b[i]=contents[n][i]; *size=want; return 0;

@@ -278,7 +278,10 @@ static void console_command(void) {
                 serial_puts("[MinOS Console] cat output: ");
                 serial_puts(data);
                 serial_putc('\n');
-            } else console_error();
+            } else {
+                serial_puts("[MinOS Console] cat failed\n");
+                console_error();
+            }
         }
     } else if (console_streq(argv[0], "write") || console_streq(argv[0], "append")) {
         if (argc >= 3 && console_arg(argv, argc, 1, path) == 0) {
