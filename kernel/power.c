@@ -5,6 +5,7 @@
 #define KBD_STATUS 0x64
 #define KBD_COMMAND 0x64
 #define KBD_CMD_PULSE_RESET 0xFE
+#define RESET_CONTROL_PORT 0xCF9
 #define ACPI_SHUTDOWN_PORT 0x604
 #define BOCHS_SHUTDOWN_PORT 0xB004
 #define QEMU_SHUTDOWN_VALUE 0x2000
@@ -19,7 +20,12 @@ void power_reboot(void) {
     if (timeout)
         outb(KBD_COMMAND, KBD_CMD_PULSE_RESET);
 
-    /* The keyboard-controller reset is the real hardware path. */
+    /* QEMU and many chipsets also expose the standard reset-control port. */
+    io_wait();
+    outb(RESET_CONTROL_PORT, 0x02);
+    io_wait();
+    outb(RESET_CONTROL_PORT, 0x06);
+
     for (;;) {
         __asm__ volatile ("hlt");
     }

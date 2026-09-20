@@ -21,7 +21,9 @@ is present the same API intentionally falls back to volatile memory.
 
 The console includes `pwd`, `ls`, `cd`, `mkdir`, `rmdir`, `touch`, `cat`,
 `write`, `append`, `rm`, `cp`, `mv`, `tree`, `find`, `df`, `echo`, and
-`history`, in addition to the original diagnostics. Ctrl-A/E/U/K and arrow
+`history`, `reboot`, and `shutdown`, in addition to the original diagnostics.
+`reboot` uses the keyboard-controller/reset-control hardware paths; `shutdown`
+uses QEMU/ACPI power-control ports. Ctrl-A/E/U/K and arrow
 history provide practical line editing.
 
 ## Milestone 3: Interactive Kernel Console
