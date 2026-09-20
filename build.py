@@ -32,6 +32,7 @@ SOURCES = [
     os.path.join(PROJECT_ROOT, "kernel", "ata.c"),
     os.path.join(PROJECT_ROOT, "kernel", "vfs.c"),
     os.path.join(PROJECT_ROOT, "kernel", "chkstk.c"),
+    os.path.join(PROJECT_ROOT, "kernel", "power.c"),
 ]
 
 def check_toolchain():

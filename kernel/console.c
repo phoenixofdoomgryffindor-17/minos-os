@@ -6,6 +6,7 @@
 #include "serial.h"
 #include "vfs.h"
 #include "ata.h"
+#include "power.h"
 
 #define CONSOLE_CHAR_WIDTH 9U
 #define CONSOLE_LINE_HEIGHT 18U
@@ -225,7 +226,7 @@ static void console_command(void) {
         /* no output */
     } else if (console_streq(argv[0], "help")) {
         console_puts("BashPlus - MinOS shell\n");
-        console_puts("System: about clear help mem ticks uptime\n");
+        console_puts("System: about clear help mem ticks uptime reboot shutdown\n");
         console_puts("Files:  pwd ls cd mkdir rmdir touch cat write append rm cp mv tree find df\n");
         console_puts("Shell:  echo history\n");
     } else if (console_streq(argv[0], "clear")) {
@@ -253,6 +254,10 @@ static void console_command(void) {
         console_puts("uptime: ");
         console_put_u64(timer_frequency() ? timer_ticks() / timer_frequency() : 0);
         console_puts(" seconds\n");
+    } else if (console_streq(argv[0], "reboot")) {
+        power_reboot();
+    } else if (console_streq(argv[0], "shutdown")) {
+        power_shutdown();
     } else if (console_streq(argv[0], "pwd")) {
         console_puts(cwd); console_putc('\n');
     } else if (console_streq(argv[0], "ls")) {
