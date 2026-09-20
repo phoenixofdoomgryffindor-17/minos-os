@@ -163,6 +163,7 @@ void console_poll(void) {
                 console_redraw_command();
             }
         } else if (event.key == INPUT_KEY_TAB) {
+            serial_puts("[MinOS Console] Tab event consumed\n");
             uint32_t spaces = 4U - ((cursor_column - 7U) % 4U);
             while (spaces-- && command_length < COMMAND_MAX) {
                 command[command_length++] = ' ';
