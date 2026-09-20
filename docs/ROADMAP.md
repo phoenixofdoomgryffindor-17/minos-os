@@ -60,12 +60,14 @@ remain disabled until an APIC/IRQ policy is introduced.
 
 ---
 
-## Milestone 4: Drivers, VFS & Initial Ramdisk
+## Milestone 4: Drivers, VFS & Initial Ramdisk *(implemented increment)*
 * **Objective:** Storage abstraction and file system access.
 * **Deliverables:**
-  * PCI bus enumeration and configuration space access.
-  * Virtual File System (VFS) abstraction (`mount`, `open`, `read`, `write`).
-  * Tar/CPIO Initial Ramdisk (InitRD) loaded at boot.
+  * [x] Safe ATA primary-master 28-bit PIO identify/read/write driver.
+  * [x] Persistent bounded MinOS VFS metadata, directories, files, and path normalization.
+  * [x] Console filesystem commands and command history/editing shortcuts.
+  * [ ] PCI bus enumeration and configuration space access.
+  * [ ] Tar/CPIO Initial Ramdisk (InitRD) loaded at boot.
   * PS/2 mouse driver with the input event queue.
 
 ---

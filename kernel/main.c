@@ -8,6 +8,8 @@
 #include "apic.h"
 #include "keyboard.h"
 #include "console.h"
+#include "ata.h"
+#include "vfs.h"
 
 void kernel_main(MinOS_BootInfo *boot_info) {
     /* 1. Initialize Serial Diagnostics (COM1) */
@@ -110,6 +112,10 @@ void kernel_main(MinOS_BootInfo *boot_info) {
         serial_puts("[MinOS Keyboard] ERROR: PS/2 controller setup failed; halting.\n");
         halt_loop();
     }
+    if (ata_primary_master_init() != 0)
+        serial_puts("[MinOS ATA] no primary master; using volatile filesystem.\n");
+    if (vfs_init() != 0)
+        serial_puts("[MinOS VFS] metadata mount warning; continuing with empty root.\n");
     serial_puts("[MinOS Kernel] IRQ controller and periodic timer ready; enabling interrupts.\n");
     console_init();
     serial_puts("[MinOS Console] Ready. Type help for commands.\n");

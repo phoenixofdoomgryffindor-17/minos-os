@@ -84,6 +84,14 @@ MinOS utilizes a **modular hybrid kernel**:
 
 ## 6. Storage & Filesystems
 
+The current Milestone 4 storage slice uses a deliberately conservative ATA
+primary-master PIO path. It polls every command with a timeout, rejects
+non-ATA signatures, and never enables device IRQs. The MinOS VFS keeps a
+bounded directory/file table and an 8-sector metadata record area, with file
+payloads in fixed data slots; metadata changes are flushed after each
+mutation. This is an intentionally recoverable bootstrap format, not the
+future MinFS journal.
+
 * **Virtual File System (VFS):** Unified hierarchy root (`/`) supporting `mount`, `open`, `read`, `write`, `close`, `readdir`, and `stat`.
 * **InitRD (RAMFS):** Tar/CPIO format ramdisk containing system fonts, default desktop shell assets, configuration files, and core userspace binaries loaded at boot.
 * **Storage Drivers:** AHCI (SATA) and NVMe controller drivers built against an asynchronous request queue.

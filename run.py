@@ -88,7 +88,8 @@ def run():
                         log_content = f.read()
                         if ("[MinOS Kernel] Milestone 1 verification complete." in log_content
                                 and "[MinOS Console] Ready. Type help for commands." in log_content
-                                and "[MinOS Timer] First periodic IRQ received" in log_content):
+                                and "[MinOS Timer] First periodic IRQ received" in log_content
+                                and "[MinOS VFS] mounted persistent metadata filesystem at /." in log_content):
                             success = True
                             break
                 except Exception:
@@ -153,7 +154,7 @@ def run():
             if "[MinOS Console] Vertical arrow consumed" not in log_content:
                 print("[MinOS Run] TEST FAILED: Vertical arrow event was not consumed.")
                 sys.exit(1)
-            print("[MinOS Run] TEST PASSED: Timer IRQ, keyboard IRQ, Tab, and arrows verified!")
+            print("[MinOS Run] TEST PASSED: Timer IRQ, keyboard IRQ, VFS mount, Tab, and arrows verified!")
             sys.exit(0)
         else:
             print("[MinOS Run] TEST FAILED: periodic APIC timer IRQ marker not found within timeout.")

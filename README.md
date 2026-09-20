@@ -11,6 +11,19 @@ The project builds incrementally toward a real, bootable bare-metal operating sy
 
 ---
 
+## Milestone 4: PIO storage and MinOS filesystem
+
+The kernel now probes the ATA primary-master channel with bounded 28-bit PIO
+identify/read/write operations. A small persistent MinOS filesystem stores
+directory and file metadata on the disk, normalizes absolute and relative
+paths, and exposes safe file operations through the console. When no ATA disk
+is present the same API intentionally falls back to volatile memory.
+
+The console includes `pwd`, `ls`, `cd`, `mkdir`, `rmdir`, `touch`, `cat`,
+`write`, `append`, `rm`, `cp`, `mv`, `tree`, `find`, `df`, `echo`, and
+`history`, in addition to the original diagnostics. Ctrl-A/E/U/K and arrow
+history provide practical line editing.
+
 ## Milestone 3: Interactive Kernel Console
 
 The kernel now provides a framebuffer console driven by the reusable input-event

@@ -29,6 +29,9 @@ SOURCES = [
     os.path.join(PROJECT_ROOT, "kernel", "console.c"),
     os.path.join(PROJECT_ROOT, "kernel", "pmm.c"),
     os.path.join(PROJECT_ROOT, "kernel", "vmm.c"),
+    os.path.join(PROJECT_ROOT, "kernel", "ata.c"),
+    os.path.join(PROJECT_ROOT, "kernel", "vfs.c"),
+    os.path.join(PROJECT_ROOT, "kernel", "chkstk.c"),
 ]
 
 def check_toolchain():
