@@ -22,12 +22,14 @@ typedef UINT64   EFI_VIRTUAL_ADDRESS;
 #define TRUE  1
 #define FALSE 0
 
-#define EFI_SUCCESS 0
-#define EFI_ERROR_MASK ((UINTN)1 << 63)
-#define EFI_ERROR(status) (((UINTN)(status)) & EFI_ERROR_MASK)
+#define EFI_SUCCESS            0
+#define EFI_ERROR_MASK         ((UINTN)1 << 63)
+#define EFI_ERROR(status)      (((UINTN)(status)) & EFI_ERROR_MASK)
 
-#define EFI_BUFFER_TOO_SMALL (EFI_ERROR_MASK | 5)
-#define EFI_NOT_FOUND        (EFI_ERROR_MASK | 14)
+#define EFI_BUFFER_TOO_SMALL   (EFI_ERROR_MASK | 5)
+#define EFI_OUT_OF_RESOURCES   (EFI_ERROR_MASK | 12)
+#define EFI_INVALID_PARAMETER  (EFI_ERROR_MASK | 2)
+#define EFI_NOT_FOUND          (EFI_ERROR_MASK | 14)
 
 typedef struct {
     UINT32 Data1;

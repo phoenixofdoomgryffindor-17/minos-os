@@ -37,6 +37,14 @@ static inline void halt_loop(void) {
 }
 
 /* Kernel Entry Point */
-void kernel_main(MinOS_BootInfo *boot_info);
+#if defined(__GNUC__)
+#define MINOS_SYSV_ABI __attribute__((sysv_abi))
+#else
+#define MINOS_SYSV_ABI
+#endif
+
+void kernel_enter(MinOS_BootInfo *boot_info) MINOS_SYSV_ABI;
+void kernel_main(MinOS_BootInfo *boot_info) MINOS_SYSV_ABI;
+
 
 #endif /* MINOS_KERNEL_H */

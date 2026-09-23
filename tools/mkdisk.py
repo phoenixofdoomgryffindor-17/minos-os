@@ -12,7 +12,19 @@ import math
 SECTOR_SIZE = 512
 SECTORS_PER_CLUSTER = 4
 CLUSTER_SIZE = SECTOR_SIZE * SECTORS_PER_CLUSTER # 2048 bytes
-TOTAL_SECTORS = 65536 # 32 MB
+IMAGE_TOTAL_SECTORS = 65536 # 32 MB
+
+# Keep the FAT volume separate from the raw VFS tail. The final 512 sectors
+# hold 8 metadata sectors plus 63 fixed 8-sector file slots.
+VFS_META_SECTORS = 8
+VFS_DATA_SECTORS_PER_FILE = 8
+VFS_FILE_MAX = 64
+VFS_RESERVED_SECTORS = VFS_META_SECTORS + (VFS_FILE_MAX - 1) * VFS_DATA_SECTORS_PER_FILE
+FAT_TOTAL_SECTORS = IMAGE_TOTAL_SECTORS - VFS_RESERVED_SECTORS
+VFS_META_LBA = FAT_TOTAL_SECTORS
+VFS_DATA_LBA = VFS_META_LBA + VFS_META_SECTORS
+
+TOTAL_SECTORS = IMAGE_TOTAL_SECTORS
 RESERVED_SECTORS = 4
 NUM_FATS = 2
 ROOT_ENTRIES = 512
@@ -56,7 +68,7 @@ def create_fat16_image(efi_file_path, output_img_path):
     struct.pack_into('<H', boot_sector, 24, 63) # Sectors per track
     struct.pack_into('<H', boot_sector, 26, 255) # Heads
     struct.pack_into('<I', boot_sector, 28, 0) # Hidden sectors
-    struct.pack_into('<I', boot_sector, 32, TOTAL_SECTORS)
+    struct.pack_into('<I', boot_sector, 32, FAT_TOTAL_SECTORS)
     boot_sector[36] = 0x80 # Drive number
     boot_sector[38] = 0x29 # Extended boot signature
     struct.pack_into('<I', boot_sector, 39, 0x19940520) # Volume ID

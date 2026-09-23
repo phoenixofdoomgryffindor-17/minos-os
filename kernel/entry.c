@@ -3,10 +3,10 @@
 /* A firmware stack must not be retained after ExitBootServices. */
 static uint8_t kernel_stack[32768] __attribute__((aligned(16)));
 
-void kernel_enter(MinOS_BootInfo *boot_info)
+MINOS_SYSV_ABI void kernel_enter(MinOS_BootInfo *boot_info)
     __attribute__((naked, noreturn, noinline));
 
-void kernel_enter(MinOS_BootInfo *boot_info) {
+MINOS_SYSV_ABI void kernel_enter(MinOS_BootInfo *boot_info) {
     (void)boot_info;
     __asm__ volatile (
         "cli\n"

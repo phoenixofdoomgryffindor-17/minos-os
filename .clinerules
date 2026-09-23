@@ -1,0 +1,540 @@
+# MinOS Cline Rules
+
+## PRIMARY WORKFLOW
+
+Always follow this workflow:
+
+```text
+INSPECT (SHORT)
+    ↓
+FIX EVERYTHING FOUND
+    ↓
+TEST
+    ↓
+PROBLEMS?
+ ┌──YES──────────────┐
+ ↓                   │
+FIX ALL PROBLEMS     │
+ ↓                   │
+TEST ────────────────┘
+    ↓
+NO PROBLEMS
+    ↓
+STOP
+```
+
+### 1. INSPECT — SHORT
+
+Inspect the relevant code briefly.
+
+The purpose of inspection is to understand what needs fixing, NOT to produce a long analysis.
+
+* Read the directly relevant files.
+* Search for relevant definitions/usages.
+* Check the build/test scripts if needed.
+* Identify all obvious problems related to the current task.
+
+Do NOT:
+
+* endlessly inspect the repository
+* repeatedly reread the same files
+* spend large amounts of time planning
+* investigate unrelated code
+* write a long explanation before editing
+
+Once you understand the problems, START FIXING.
+
+### 2. FIX EVERYTHING FOUND
+
+Fix all problems discovered during the initial inspection that are relevant to the requested task.
+
+Do not stop after fixing the first problem.
+
+Prefer:
+
+* small, direct fixes
+* existing architecture
+* existing APIs
+* existing tests/build scripts
+
+Do not:
+
+* redesign unrelated systems
+* add unnecessary abstractions
+* perform speculative refactors
+* add unnecessary documentation
+* create unnecessary test infrastructure
+
+### 3. TEST
+
+After fixing the discovered problems, run the appropriate build/test process.
+
+Use the project's existing commands.
+
+For example:
+
+```text
+python build.py
+python run.py
+```
+
+Use whatever test path already exists in the project.
+
+### 4. IF THERE ARE PROBLEMS
+
+If testing reports problems:
+
+1. Read the actual errors.
+2. Fix the problems.
+3. Test again.
+
+Do NOT return to a long inspection phase.
+
+Do NOT ask for permission to fix ordinary errors.
+
+Continue:
+
+```text
+FIX → TEST → FIX → TEST
+```
+
+until the tests pass or a genuine external blocker prevents progress.
+
+### 5. IF EVERYTHING IS OK
+
+STOP.
+
+Do not:
+
+* invent additional work
+* perform unrelated improvements
+* continue "optimizing"
+* redesign working code
+* keep inspecting the repository
+
+If the requested task works, the task is DONE.
+
+## SPEED
+
+Optimize for fast execution.
+
+The desired behavior is:
+
+```text
+SHORT INSPECTION
+→ BIG FIX PASS
+→ TEST
+→ FIX FAILURES
+→ TEST
+→ STOP
+```
+
+NOT:
+
+```text
+inspect
+→ explain
+→ inspect more
+→ plan
+→ explain plan
+→ inspect again
+→ fix one line
+→ explain
+→ inspect
+→ ...
+```
+
+Make changes as soon as enough information is available.
+
+## COMMUNICATION
+
+Keep progress messages extremely short.
+
+Good:
+
+```text
+Inspecting the relevant files.
+```
+
+```text
+Found 3 related issues. Fixing them together.
+```
+
+```text
+Build exposed 2 errors. Fixing both.
+```
+
+Bad:
+
+Long explanations of what might happen before actually doing anything.
+
+Do the work first.
+
+## WINDOWS
+
+The project is developed on Windows.
+
+Use Windows-compatible commands.
+
+Do not assume Unix commands such as:
+
+```text
+true
+grep
+sed
+awk
+which
+```
+
+are available in Windows CMD.
+
+If a command fails because it uses the wrong shell syntax, immediately use the Windows equivalent.
+
+## TOOLCHAIN
+
+Use the project's existing portable toolchain.
+
+Do not require administrator privileges.
+
+Do not install system-wide software.
+
+Do not replace the existing compiler/toolchain unless explicitly required.
+
+## MINOS ARCHITECTURE
+
+Preserve the existing MinOS architecture.
+
+Target:
+
+* x86_64
+* UEFI
+* GOP framebuffer
+* QEMU
+* freestanding kernel
+* MinOS VFS/filesystem
+* MinOS boot handoff
+
+Do not replace an existing subsystem with an unrelated implementation merely because it is easier.
+
+## ABI
+
+UEFI entry code uses the Microsoft x64 / UEFI ABI.
+
+Where explicitly required by the MinOS source, kernel entry functions use the System V x86_64 ABI.
+
+Do not remove ABI annotations simply to make compilation easier.
+
+When fixing ABI code:
+
+* make the necessary changes
+* build
+* verify the actual result
+* continue
+
+Do not spend excessive time on theoretical ABI analysis if the build/assembly output already answers the question.
+
+## GIT SAFETY
+
+Never perform these without explicit instruction:
+
+* `git reset --hard`
+* `git clean`
+* force push
+* deleting branches
+* rewriting history
+
+Do not overwrite unrelated user work.
+
+## DESTRUCTIVE CHANGES
+
+Do not delete working code just to make a test pass.
+
+Do not make unrelated destructive changes.
+
+## COMPLETION
+
+The task is complete when:
+
+1. Relevant problems were inspected.
+2. All discovered relevant problems were fixed.
+3. Tests/build were run.
+4. Any test failures were fixed.
+5. Tests/build pass.
+
+Then STOP.
+
+Final report should contain only:
+
+* What was fixed
+* Test/build result
+* Remaining problems, if any
+# MinOS Cline Rules
+
+## PRIMARY WORKFLOW
+
+Always follow this workflow:
+
+```text
+INSPECT (SHORT)
+    ↓
+FIX EVERYTHING FOUND
+    ↓
+TEST
+    ↓
+PROBLEMS?
+ ┌──YES──────────────┐
+ ↓                   │
+FIX ALL PROBLEMS     │
+ ↓                   │
+TEST ────────────────┘
+    ↓
+NO PROBLEMS
+    ↓
+STOP
+```
+
+### 1. INSPECT — SHORT
+
+Inspect the relevant code briefly.
+
+The purpose of inspection is to understand what needs fixing, NOT to produce a long analysis.
+
+* Read the directly relevant files.
+* Search for relevant definitions/usages.
+* Check the build/test scripts if needed.
+* Identify all obvious problems related to the current task.
+
+Do NOT:
+
+* endlessly inspect the repository
+* repeatedly reread the same files
+* spend large amounts of time planning
+* investigate unrelated code
+* write a long explanation before editing
+
+Once you understand the problems, START FIXING.
+
+### 2. FIX EVERYTHING FOUND
+
+Fix all problems discovered during the initial inspection that are relevant to the requested task.
+
+Do not stop after fixing the first problem.
+
+Prefer:
+
+* small, direct fixes
+* existing architecture
+* existing APIs
+* existing tests/build scripts
+
+Do not:
+
+* redesign unrelated systems
+* add unnecessary abstractions
+* perform speculative refactors
+* add unnecessary documentation
+* create unnecessary test infrastructure
+
+### 3. TEST
+
+After fixing the discovered problems, run the appropriate build/test process.
+
+Use the project's existing commands.
+
+For example:
+
+```text
+python build.py
+python run.py
+```
+
+Use whatever test path already exists in the project.
+
+### 4. IF THERE ARE PROBLEMS
+
+If testing reports problems:
+
+1. Read the actual errors.
+2. Fix the problems.
+3. Test again.
+
+Do NOT return to a long inspection phase.
+
+Do NOT ask for permission to fix ordinary errors.
+
+Continue:
+
+```text
+FIX → TEST → FIX → TEST
+```
+
+until the tests pass or a genuine external blocker prevents progress.
+
+### 5. IF EVERYTHING IS OK
+
+STOP.
+
+Do not:
+
+* invent additional work
+* perform unrelated improvements
+* continue "optimizing"
+* redesign working code
+* keep inspecting the repository
+
+If the requested task works, the task is DONE.
+
+## SPEED
+
+Optimize for fast execution.
+
+The desired behavior is:
+
+```text
+SHORT INSPECTION
+→ BIG FIX PASS
+→ TEST
+→ FIX FAILURES
+→ TEST
+→ STOP
+```
+
+NOT:
+
+```text
+inspect
+→ explain
+→ inspect more
+→ plan
+→ explain plan
+→ inspect again
+→ fix one line
+→ explain
+→ inspect
+→ ...
+```
+
+Make changes as soon as enough information is available.
+
+## COMMUNICATION
+
+Keep progress messages extremely short.
+
+Good:
+
+```text
+Inspecting the relevant files.
+```
+
+```text
+Found 3 related issues. Fixing them together.
+```
+
+```text
+Build exposed 2 errors. Fixing both.
+```
+
+Bad:
+
+Long explanations of what might happen before actually doing anything.
+
+Do the work first.
+
+## WINDOWS
+
+The project is developed on Windows.
+
+Use Windows-compatible commands.
+
+Do not assume Unix commands such as:
+
+```text
+true
+grep
+sed
+awk
+which
+```
+
+are available in Windows CMD.
+
+If a command fails because it uses the wrong shell syntax, immediately use the Windows equivalent.
+
+## TOOLCHAIN
+
+Use the project's existing portable toolchain.
+
+Do not require administrator privileges.
+
+Do not install system-wide software.
+
+Do not replace the existing compiler/toolchain unless explicitly required.
+
+## MINOS ARCHITECTURE
+
+Preserve the existing MinOS architecture.
+
+Target:
+
+* x86_64
+* UEFI
+* GOP framebuffer
+* QEMU
+* freestanding kernel
+* MinOS VFS/filesystem
+* MinOS boot handoff
+
+Do not replace an existing subsystem with an unrelated implementation merely because it is easier.
+
+## ABI
+
+UEFI entry code uses the Microsoft x64 / UEFI ABI.
+
+Where explicitly required by the MinOS source, kernel entry functions use the System V x86_64 ABI.
+
+Do not remove ABI annotations simply to make compilation easier.
+
+When fixing ABI code:
+
+* make the necessary changes
+* build
+* verify the actual result
+* continue
+
+Do not spend excessive time on theoretical ABI analysis if the build/assembly output already answers the question.
+
+## GIT SAFETY
+
+Never perform these without explicit instruction:
+
+* `git reset --hard`
+* `git clean`
+* force push
+* deleting branches
+* rewriting history
+
+Do not overwrite unrelated user work.
+
+## DESTRUCTIVE CHANGES
+
+Do not delete working code just to make a test pass.
+
+Do not make unrelated destructive changes.
+
+## COMPLETION
+
+The task is complete when:
+
+1. Relevant problems were inspected.
+2. All discovered relevant problems were fixed.
+3. Tests/build were run.
+4. Any test failures were fixed.
+5. Tests/build pass.
+
+Then STOP.
+
+Final report should contain only:
+
+* What was fixed
+* Test/build result
+* Remaining problems, if any

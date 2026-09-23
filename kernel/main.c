@@ -11,7 +11,7 @@
 #include "ata.h"
 #include "vfs.h"
 
-void kernel_main(MinOS_BootInfo *boot_info) {
+MINOS_SYSV_ABI void kernel_main(MinOS_BootInfo *boot_info) {
     /* 1. Initialize Serial Diagnostics (COM1) */
     serial_init();
     serial_puts("\n=========================================================\n");

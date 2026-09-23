@@ -3,9 +3,6 @@
 #include "serial.h"
 
 #define VFS_MAGIC 0x534F4E4DU
-#define VFS_META_LBA 2048U
-#define VFS_DATA_LBA 2064U
-#define VFS_CONTENT_MAX 4096U
 
 struct vfs_record {
     char name[VFS_NAME_MAX + 1];

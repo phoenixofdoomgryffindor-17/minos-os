@@ -7,6 +7,16 @@
 #define VFS_NAME_MAX 31
 #define VFS_FILE_MAX 64
 
+/* Matches the reserved tail produced by tools/mkdisk.py. */
+#define VFS_SECTOR_SIZE 512U
+#define VFS_META_SECTORS 8U
+#define VFS_DATA_SECTORS_PER_FILE 8U
+#define VFS_DISK_END_LBA 65536U
+#define VFS_RESERVED_SECTORS 512U
+#define VFS_META_LBA (VFS_DISK_END_LBA - VFS_RESERVED_SECTORS)
+#define VFS_DATA_LBA (VFS_META_LBA + VFS_META_SECTORS)
+#define VFS_CONTENT_MAX (VFS_DATA_SECTORS_PER_FILE * VFS_SECTOR_SIZE)
+
 enum vfs_type { VFS_DIRECTORY = 1, VFS_FILE = 2 };
 struct vfs_stat { enum vfs_type type; uint32_t size; };
 struct vfs_dirent { char name[VFS_NAME_MAX + 1]; enum vfs_type type; uint32_t size; };

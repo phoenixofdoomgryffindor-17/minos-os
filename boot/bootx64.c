@@ -5,7 +5,6 @@
 
 static MinOS_BootInfo g_boot_info;
 static EFI_GUID g_gop_guid = EFI_GRAPHICS_OUTPUT_PROTOCOL_GUID;
-extern void kernel_enter(MinOS_BootInfo *);
 extern uint64_t kernel_stack_base(void);
 extern uint64_t kernel_stack_size(void);
 
@@ -18,6 +17,96 @@ static void detect_cpu_vendor(char *vendor_out) {
     *(uint32_t *)(vendor_out + 4) = edx;
     *(uint32_t *)(vendor_out + 8) = ecx;
     vendor_out[12] = '\0';
+}
+
+static uint64_t add_saturating(uint64_t left, uint64_t right) {
+    return right > UINT64_MAX - left ? UINT64_MAX : left + right;
+}
+
+static void update_boot_info(EFI_MEMORY_DESCRIPTOR *mem_map, UINTN map_size,
+                             UINTN desc_size, UINT32 desc_ver) {
+    uint64_t total_bytes = 0;
+    uint64_t usable_bytes = 0;
+    UINTN num_entries;
+
+    g_boot_info.memory_map = mem_map;
+    g_boot_info.memory_map_size = map_size;
+    g_boot_info.descriptor_size = desc_size;
+    g_boot_info.descriptor_version = desc_ver;
+    if (!mem_map || !desc_size) return;
+
+    num_entries = map_size / desc_size;
+    for (UINTN i = 0; i < num_entries; i++) {
+        EFI_MEMORY_DESCRIPTOR *desc =
+            (EFI_MEMORY_DESCRIPTOR *)((uint8_t *)mem_map + i * desc_size);
+        uint64_t region_size = desc->NumberOfPages > UINT64_MAX / 4096
+                                 ? UINT64_MAX
+                                 : desc->NumberOfPages * 4096;
+        total_bytes = add_saturating(total_bytes, region_size);
+        if (desc->Type == EfiConventionalMemory ||
+            desc->Type == EfiBootServicesCode ||
+            desc->Type == EfiBootServicesData ||
+            desc->Type == EfiLoaderCode ||
+            desc->Type == EfiLoaderData) {
+            usable_bytes = add_saturating(usable_bytes, region_size);
+        }
+    }
+
+    g_boot_info.total_memory_bytes = total_bytes;
+    g_boot_info.usable_memory_bytes = usable_bytes;
+}
+
+static EFI_STATUS get_memory_map(EFI_BOOT_SERVICES *boot_services,
+                                 EFI_MEMORY_DESCRIPTOR **map,
+                                 UINTN *capacity,
+                                 UINTN *map_size,
+                                 UINTN *map_key,
+                                 UINTN *desc_size,
+                                 UINT32 *desc_ver) {
+    for (;;) {
+        UINTN required = *capacity;
+        EFI_STATUS status = boot_services->GetMemoryMap(&required, *map,
+                                                        map_key, desc_size, desc_ver);
+        if (status == EFI_BUFFER_TOO_SMALL) {
+            UINTN base = required > *capacity ? required : *capacity;
+            UINTN increment = base / 2;
+            EFI_MEMORY_DESCRIPTOR *new_map = 0;
+            if (!increment) increment = 1;
+            if (base > UINT64_MAX - increment - 1) {
+                if (*map) boot_services->FreePool(*map);
+                *map = 0;
+                *capacity = 0;
+                return EFI_OUT_OF_RESOURCES;
+            }
+            status = boot_services->AllocatePool(EfiLoaderData,
+                                                  base + increment + 1,
+                                                  (void **)&new_map);
+            if (EFI_ERROR(status)) {
+                if (*map) boot_services->FreePool(*map);
+                *map = 0;
+                *capacity = 0;
+                return status;
+            }
+            if (*map) boot_services->FreePool(*map);
+            *map = new_map;
+            *capacity = base + increment + 1;
+            continue;
+        }
+        if (EFI_ERROR(status)) {
+            if (*map) boot_services->FreePool(*map);
+            *map = 0;
+            *capacity = 0;
+            return status;
+        }
+        if (!*map || !*desc_size) {
+            if (*map) boot_services->FreePool(*map);
+            *map = 0;
+            *capacity = 0;
+            return EFI_INVALID_PARAMETER;
+        }
+        *map_size = required;
+        return EFI_SUCCESS;
+    }
 }
 
 EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable) {
@@ -53,75 +142,57 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
                   g_boot_info.fb_width, g_boot_info.fb_height, g_boot_info.fb_pitch,
                   g_boot_info.fb_is_bgr ? "BGRA" : "RGBA", g_boot_info.fb_base);
 
-    /* 4. Obtain UEFI Memory Map */
+    /* 4. Obtain UEFI Memory Map. The map must be reacquired after every
+     * failed ExitBootServices() attempt because its key changes with the map. */
+    UINTN map_capacity = 0;
     UINTN map_size = 0;
     UINTN map_key = 0;
     UINTN desc_size = 0;
     UINT32 desc_ver = 0;
     EFI_MEMORY_DESCRIPTOR *mem_map = 0;
 
-    /* Get required buffer size */
-    status = SystemTable->BootServices->GetMemoryMap(&map_size, 0, &map_key, &desc_size, &desc_ver);
-    map_size += 4096; /* Allocate extra for the allocation descriptor itself */
-
-    status = SystemTable->BootServices->AllocatePool(EfiLoaderData, map_size, (void **)&mem_map);
+    status = get_memory_map(SystemTable->BootServices, &mem_map, &map_capacity,
+                            &map_size, &map_key, &desc_size, &desc_ver);
     if (EFI_ERROR(status)) {
-        serial_puts("[MinOS Boot] ERROR: Failed to allocate memory map pool!\n");
+        serial_puts("[MinOS Boot] ERROR: Failed to allocate or retrieve memory map!\n");
         return status;
     }
 
-    status = SystemTable->BootServices->GetMemoryMap(&map_size, mem_map, &map_key, &desc_size, &desc_ver);
-    if (EFI_ERROR(status)) {
-        serial_puts("[MinOS Boot] ERROR: Failed to get memory map!\n");
-        return status;
-    }
-
-    /* Analyze physical memory */
-    uint64_t total_bytes = 0;
-    uint64_t usable_bytes = 0;
-    UINTN num_entries = map_size / desc_size;
-
-    for (UINTN i = 0; i < num_entries; i++) {
-        EFI_MEMORY_DESCRIPTOR *desc = (EFI_MEMORY_DESCRIPTOR *)((uint8_t *)mem_map + (i * desc_size));
-        uint64_t region_size = desc->NumberOfPages * 4096;
-        total_bytes += region_size;
-        if (desc->Type == EfiConventionalMemory ||
-            desc->Type == EfiBootServicesCode ||
-            desc->Type == EfiBootServicesData ||
-            desc->Type == EfiLoaderCode ||
-            desc->Type == EfiLoaderData) {
-            usable_bytes += region_size;
-        }
-    }
-
-    g_boot_info.total_memory_bytes  = total_bytes;
-    g_boot_info.usable_memory_bytes = usable_bytes;
-    g_boot_info.memory_map          = mem_map;
-    g_boot_info.memory_map_size     = map_size;
-    g_boot_info.descriptor_size     = desc_size;
-    g_boot_info.descriptor_version  = desc_ver;
-    g_boot_info.magic               = MINOS_BOOTINFO_MAGIC;
-    g_boot_info.kernel_image_base  = ((uint64_t)(uintptr_t)&efi_main) & ~4095ULL;
+    update_boot_info(mem_map, map_size, desc_size, desc_ver);
+    g_boot_info.magic = MINOS_BOOTINFO_MAGIC;
+    g_boot_info.kernel_image_base = ((uint64_t)(uintptr_t)&efi_main) & ~4095ULL;
     /* The PE image is small today; conservatively protect its first 2 MiB. */
-    g_boot_info.kernel_image_size   = 2 * 1024 * 1024;
+    g_boot_info.kernel_image_size = 2 * 1024 * 1024;
     g_boot_info.bootstrap_stack_base = kernel_stack_base();
     g_boot_info.bootstrap_stack_size = kernel_stack_size();
 
+    UINTN num_entries = map_size / desc_size;
     serial_printf("[MinOS Boot] UEFI Memory Map: %u entries, %u MB total, %u MB usable\n",
                   (uint32_t)num_entries,
-                  (uint32_t)(total_bytes / (1024 * 1024)),
-                  (uint32_t)(usable_bytes / (1024 * 1024)));
+                  (uint32_t)(g_boot_info.total_memory_bytes / (1024 * 1024)),
+                  (uint32_t)(g_boot_info.usable_memory_bytes / (1024 * 1024)));
 
-    /* 5. Clean Transition: ExitBootServices */
-    serial_puts("[MinOS Boot] Cleanly exiting UEFI Boot Services...\n");
-    status = SystemTable->BootServices->ExitBootServices(ImageHandle, map_key);
-    if (EFI_ERROR(status)) {
-        /* If memory map changed, retry once with updated key */
-        serial_puts("[MinOS Boot] Retrying ExitBootServices with refreshed map key...\n");
-        map_size += 4096;
-        SystemTable->BootServices->GetMemoryMap(&map_size, mem_map, &map_key, &desc_size, &desc_ver);
-        status = SystemTable->BootServices->ExitBootServices(ImageHandle, map_key);
+    /* 5. Clean Transition: ExitBootServices. A failed attempt invalidates the
+     * map key, so reacquire the map before every retry. */
+    for (;;) {
+        serial_puts("[MinOS Boot] Exiting UEFI Boot Services...\n");
+        EFI_STATUS exit_status = SystemTable->BootServices->ExitBootServices(ImageHandle, map_key);
+        if (!EFI_ERROR(exit_status)) break;
+
+        serial_puts("[MinOS Boot] ExitBootServices failed; reacquiring memory map...\n");
+        status = get_memory_map(SystemTable->BootServices, &mem_map, &map_capacity,
+                                &map_size, &map_key, &desc_size, &desc_ver);
         if (EFI_ERROR(status)) {
+            serial_puts("[MinOS Boot] FATAL: could not reacquire memory map!\n");
+            halt_loop();
+        }
+        update_boot_info(mem_map, map_size, desc_size, desc_ver);
+        num_entries = map_size / desc_size;
+        serial_printf("[MinOS Boot] Refreshed map: %u entries, key=%p\n",
+                      (uint32_t)num_entries, (uint64_t)map_key);
+
+        /* Other failures are not map-key races and should not spin forever. */
+        if (exit_status != EFI_INVALID_PARAMETER) {
             serial_puts("[MinOS Boot] FATAL: ExitBootServices failed!\n");
             halt_loop();
         }
