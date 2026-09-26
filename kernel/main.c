@@ -5,6 +5,9 @@
 #include "idt.h"
 #include "pmm.h"
 #include "vmm.h"
+#include "heap.h"
+#include "scheduler.h"
+#include "syscall.h"
 #include "apic.h"
 #include "keyboard.h"
 #include "console.h"
@@ -35,6 +38,10 @@ MINOS_SYSV_ABI void kernel_main(MinOS_BootInfo *boot_info) {
                   pmm_usable_bytes() / (1024 * 1024),
                   pmm_reserved_bytes() / (1024 * 1024),
                   pmm_free_frames());
+
+    heap_init();
+    scheduler_init();
+    syscall_init();
 
     /* 2. Log Boot & Hardware Parameters */
     serial_printf("[MinOS Kernel] BootInfo Magic: %p (VALID)\n", boot_info->magic);
