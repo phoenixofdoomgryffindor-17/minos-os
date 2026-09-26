@@ -161,8 +161,8 @@ EFI_STATUS EFIAPI efi_main(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *SystemTable
     update_boot_info(mem_map, map_size, desc_size, desc_ver);
     g_boot_info.magic = MINOS_BOOTINFO_MAGIC;
     g_boot_info.kernel_image_base = ((uint64_t)(uintptr_t)&efi_main) & ~4095ULL;
-    /* Reserve enough of the PE image for the kernel BSS allocators and tables. */
-    g_boot_info.kernel_image_size = 16ULL * 1024ULL * 1024ULL;
+    /* The PE image is small today; conservatively protect its first 2 MiB. */
+    g_boot_info.kernel_image_size = 2 * 1024 * 1024;
     g_boot_info.bootstrap_stack_base = kernel_stack_base();
     g_boot_info.bootstrap_stack_size = kernel_stack_size();
 
