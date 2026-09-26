@@ -32,6 +32,8 @@ typedef struct {
     uint64_t kernel_image_size;
     uint64_t bootstrap_stack_base;
     uint64_t bootstrap_stack_size;
+    uint64_t initrd_base;
+    uint64_t initrd_size;
 } MinOS_BootInfo;
 
 #endif /* MINOS_BOOT_BOOTINFO_H */

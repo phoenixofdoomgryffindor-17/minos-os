@@ -3,22 +3,29 @@
 #include "console.h"
 #include "vfs.h"
 #include "serial.h"
+#include <stddef.h>
 
 static uint64_t (*syscall_table[256])(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t);
 
 static uint64_t sys_write(uint64_t fd, uint64_t buf, uint64_t count, uint64_t, uint64_t) {
-    if (fd == 1 || fd == 2) {
-        const char *s = (const char *)buf;
-        for (uint64_t i = 0; i < count; ++i) console_putc(s[i]);
-        return count;
-    }
-    return -1;
+    (void)fd; (void)buf; (void)count;
+    return 0;
 }
-static uint64_t sys_read(uint64_t fd, uint64_t buf, uint64_t count, uint64_t, uint64_t) { return 0; }
-static uint64_t sys_open(uint64_t path, uint64_t, uint64_t, uint64_t, uint64_t) { return vfs_open((const char *)path, 0); }
-static uint64_t sys_close(uint64_t fd, uint64_t, uint64_t, uint64_t, uint64_t) { return vfs_close((int)fd); }
+static uint64_t sys_read(uint64_t fd, uint64_t buf, uint64_t count, uint64_t, uint64_t) {
+    (void)fd; (void)buf; (void)count;
+    return 0;
+}
+static uint64_t sys_open(uint64_t path, uint64_t, uint64_t, uint64_t, uint64_t) {
+    (void)path;
+    return 0;
+}
+static uint64_t sys_close(uint64_t fd, uint64_t, uint64_t, uint64_t, uint64_t) {
+    (void)fd;
+    return 0;
+}
 static uint64_t sys_exit(uint64_t code, uint64_t, uint64_t, uint64_t, uint64_t) {
-    thread_exit(); return code;
+    (void)code;
+    thread_exit(); return 0;
 }
 static uint64_t sys_yield(uint64_t, uint64_t, uint64_t, uint64_t, uint64_t) {
     thread_yield(); return 0;

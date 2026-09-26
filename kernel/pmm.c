@@ -54,7 +54,7 @@ void pmm_init(const MinOS_BootInfo *info) {
         reserve_range(info->initrd_base / 4096ULL, (info->initrd_base + info->initrd_size + 4095ULL) / 4096ULL);
     reserve_range((uint64_t)(uintptr_t)info / 4096ULL, ((uint64_t)(uintptr_t)info + sizeof(*info) + 4095ULL) / 4096ULL);
     reserve_range((uint64_t)(uintptr_t)info->memory_map / 4096ULL, ((uint64_t)(uintptr_t)info->memory_map + info->memory_map_size + 4095ULL) / 4096ULL);
-    reserve_range(info->fb_base / 4096ULL, (info->fb_base + info->fb_size + 4095ULL) / 4096ULL);
+    reserve_range((uint64_t)info->fb_base / 4096ULL, ((uint64_t)info->fb_base + info->fb_size + 4095ULL) / 4096ULL);
     reserve_range(info->kernel_image_base / 4096ULL, (info->kernel_image_base + info->kernel_image_size + 4095ULL) / 4096ULL);
     reserve_range(info->bootstrap_stack_base / 4096ULL, (info->bootstrap_stack_base + info->bootstrap_stack_size + 4095ULL) / 4096ULL);
     serial_printf("[MinOS PMM] Conventional: %u MiB, reserved: %u MiB\n",

@@ -58,6 +58,16 @@ void vmm_init(const MinOS_BootInfo *info) {
     if (!map_bytes) map_bytes = 2ULL * 1024ULL * 1024ULL;
     if (map_bytes > MINOS_VMM_BOOTSTRAP_MAP_LIMIT) map_bytes = MINOS_VMM_BOOTSTRAP_MAP_LIMIT;
 
+    /* Also ensure kernel image (16 MiB at kernel_image_base) and framebuffer are mapped. */
+    uint64_t kernel_end = 0, fb_end = 0;
+    if (info) {
+        kernel_end = info->kernel_image_base + info->kernel_image_size;
+        fb_end = (uint64_t)info->fb_base + info->fb_size;
+    }
+    if (kernel_end > map_bytes) map_bytes = kernel_end;
+    if (fb_end > map_bytes) map_bytes = fb_end;
+    if (map_bytes > MINOS_VMM_BOOTSTRAP_MAP_LIMIT) map_bytes = MINOS_VMM_BOOTSTRAP_MAP_LIMIT;
+
     mapped_2mb_pages = (map_bytes + MINOS_VMM_BOOTSTRAP_PAGE_SIZE - 1ULL) / MINOS_VMM_BOOTSTRAP_PAGE_SIZE;
     if (mapped_2mb_pages > MINOS_VMM_BOOTSTRAP_MAX_PAGES) mapped_2mb_pages = MINOS_VMM_BOOTSTRAP_MAX_PAGES;
 

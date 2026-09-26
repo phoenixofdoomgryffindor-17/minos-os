@@ -28,12 +28,13 @@ void heap_init(void) {
 }
 
 static slab_header *slab_alloc(uint32_t size) {
+    (void)size;
     uint64_t page = pmm_alloc_frame();
     if (!page) return NULL;
     if (vmm_map_user_page(page, heap_top) != 0) { pmm_free_frame(page); return NULL; }
     slab_header *h = (slab_header *)(heap_top + MINOS_HHDM_BASE);
     h->magic = HEAP_MAGIC;
-    h->size = size;
+    h->size = 4096 - sizeof(slab_header);
     h->free = 1;
     h->next = free_list;
     free_list = h;

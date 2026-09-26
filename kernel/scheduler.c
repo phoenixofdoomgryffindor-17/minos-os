@@ -3,6 +3,8 @@
 #include "serial.h"
 #include "apic.h"
 
+extern void context_switch(tcb_t *new_task);
+
 static tcb_t *current = NULL;
 static tcb_t *ready_head = NULL;
 static tcb_t *ready_tail = NULL;
@@ -34,6 +36,7 @@ void scheduler_init(void) {
 }
 
 tcb_t *thread_create(void (*entry)(void), void *arg) {
+    (void)arg;
     tcb_t *tcb = (tcb_t *)kmalloc(sizeof(tcb_t));
     if (!tcb) return NULL;
     uint64_t *stack = (uint64_t *)kmalloc(TCB_STACK_SIZE);

@@ -46,5 +46,9 @@ static inline void halt_loop(void) {
 void kernel_enter(MinOS_BootInfo *boot_info) MINOS_SYSV_ABI;
 void kernel_main(MinOS_BootInfo *boot_info) MINOS_SYSV_ABI;
 
+extern void heap_init(void);
+extern void scheduler_init(void);
+extern void syscall_init(void);
+
 
 #endif /* MINOS_KERNEL_H */
